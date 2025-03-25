@@ -57,7 +57,7 @@ class TimeBubble(pygame.sprite.Sprite):
             player.is_dead = False
             self.allow = False
 
-class Bullet():
+class RocketBullet():
 
     def __init__(self, position, angle):
         self.position = Vector2()
@@ -76,81 +76,81 @@ class Bullet():
     def draw(self, screen):
         pygame.draw.rect(screen, (225, 0, 0), self.rect)
 
-class Gun():
+class Rocket():
     def __init__(self):
-        self.gun_sprite = None
+        self.rocket_sprite = None
         self.position = Vector2()
         self.is_flipped = False
-        self.bullet_count = 10
+        self.rocket_count = 10
         pygame.font.init()
         self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 300)
         self.position = pygame.Vector2()
         self.refresh_sprite()
         self.explosions = []
-        self.bullets = []
+        self.rockets = []
 
     def render_current_ammo(self, screen):
-        text = self.font.render(str(self.bullet_count), False, (200,200,200))
+        text = self.font.render(str(self.rocket_count), False, (200,200,200))
         screen.blit(text, (300,200))
     
     def shoot(self):
-        if(self.bullet_count > 0):
+        if(self.rocket_count > 0):
             sound = mixer.Sound("data/audio/Firework.mp3")
             sound.set_volume(0.2)
             sound.play()
             exp_pos = Vector2()
             exp_pos.x = self.position.x
             exp_pos.y = self.position.y
-            bullet_pos = Vector2()
-            bullet_pos.x = self.position.x
-            bullet_pos.y = self.position.y
+            rocket_pos = Vector2()
+            rocket_pos.x = self.position.x
+            rocket_pos.y = self.position.y
             mouse_x, mouse_y = pygame.mouse.get_pos()
             rel_x, rel_y = mouse_x - self.position.x, mouse_y - self.position.y
             angle = math.atan2(rel_y, rel_x)
 
-            bullet = Bullet(bullet_pos, angle)
-            self.bullets.append(bullet)
+            rocket = RocketBullet(rocket_pos, angle)
+            self.rockets.append(rocket)
 
-            bullet = Bullet(bullet_pos, angle)
-            self.bullets.append(bullet)
+            rocket = RocketBullet(rocket_pos, angle)
+            self.rockets.append(rocket)
 
-            bullet = Bullet(bullet_pos, angle + 20 * math.pi/180)
-            self.bullets.append(bullet)
+            rocket = RocketBullet(rocket_pos, angle + 20 * math.pi/180)
+            self.rockets.append(rocket)
 
-            bullet = Bullet(bullet_pos, angle - 20 * math.pi/180)
-            self.bullets.append(bullet) 
+            rocket = RocketBullet(rocket_pos, angle - 20 * math.pi/180)
+            self.rockets.append(rocket) 
 
-            bullet = Bullet(bullet_pos, angle + 10 * math.pi/180)
-            self.bullets.append(bullet)
+            rocket = RocketBullet(rocket_pos, angle + 10 * math.pi/180)
+            self.rockets.append(rocket)
 
-            bullet = Bullet(bullet_pos, angle - 10 * math.pi/180)
-            self.bullets.append(bullet) 
+            rocket = RocketBullet(rocket_pos, angle - 10 * math.pi/180)
+            self.rockets.append(rocket) 
 
-            self.bullet_count -= 1
+            self.rocket_count -= 1
         else:
             sound = mixer.Sound("data/audio/CantShoot.wav")
             sound.set_volume(0.08)
             sound.play()
 
     def explode(self, screen):
-        for i in range(len(self.bullets)):
-                if(self.bullets[i].position.x <= 0) or (self.bullets[i].position.x >= 760) or (self.bullets[i].position.y <= 0) or (self.bullets[i].position.y >= 760):
-                    self.bullets.remove(self.bullets[i])
+        for i in range(len(self.rockets)):
+                if(self.rockets[i].position.x <= 0) or (self.rockets[i].position.x >= 760) or (self.rockets[i].position.y <= 0) or (self.rockets[i].position.y >= 760):
+                    self.rockets.remove(self.rockets[i])
                     break
-                elif(self.bullets[i].distance_traveled >= 200):
-                    self.bullets.remove(self.bullets[i])
+                elif(self.rockets[i].distance_traveled >= 200):
+                    self.rockets.remove(self.rockets[i])
                     break
-                self.bullets[i].move()
-                self.bullets[i].draw(screen)
+                self.rockets[i].move()
+                self.rockets[i].draw(screen)
 
 
     def refresh_sprite(self):
-        self.gun_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
-        self.gun_sprite = pygame.transform.scale(self.gun_sprite, (40, 20))
-        self.gun_sprite = pygame.transform.rotate(self.gun_sprite, 180)
+        self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
+        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (40, 20))
+        self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, 180)
 
     def draw(self, screen):
-        screen.blit(self.gun_sprite, self.blit_position())
+        screen.blit(self.rocket_sprite, self.blit_position())
         self.explode(screen)
 
     def set_position(self, position):
@@ -158,10 +158,10 @@ class Gun():
     
     def set_rotation(self, degrees):
         self.refresh_sprite()
-        self.gun_sprite = pygame.transform.rotate(self.gun_sprite, degrees)
+        self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, degrees)
           
     def blit_position(self):
-        return self.position.x - (self.gun_sprite.get_width() / 2), self.position.y + (self.gun_sprite.get_height() / 2)
+        return self.position.x - (self.rocket_sprite.get_width() / 2), self.position.y + (self.rocket_sprite.get_height() / 2)
 
 class Player():
     global dt
@@ -175,7 +175,7 @@ class Player():
         self.velocity = pygame.Vector2()
         self.rotation = pygame.Vector2()
         self.offset = pygame.Vector2()
-        self.gun = Gun()
+        self.rocket = Rocket()
         self.drag = 100
         self.gravity_scale = 270
         self.allowy = False
@@ -184,7 +184,7 @@ class Player():
         self.elytra_sprite = pygame.image.load('data/images/Elytra.png').convert_alpha()
         self.elytra_sprite = pygame.transform.scale(self.elytra_sprite, (70, 70))
         self.rect = pygame.Rect(self.position.x,self.position.y, 10,10)
-        self.gun.set_position(self.position)
+        self.rocket.set_position(self.position)
 
     def move(self):
         self.gravity()
@@ -194,12 +194,12 @@ class Player():
         self.position.y -= self.velocity.y * dt
         self.rect = pygame.Rect(self.position.x,self.position.y, 50,60)
     
-    def handle_gun(self):
-        self.gun.set_position(self.position)
+    def handle_rocket(self):
+        self.rocket.set_position(self.position)
         mouse_x, mouse_y = pygame.mouse.get_pos()
         rel_x, rel_y = mouse_x - self.position.x, mouse_y - self.position.y
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
-        self.gun.set_rotation(angle)
+        self.rocket.set_rotation(angle)
 
         if(self.offset.x > 0):
             self.offset.x = rel_x if rel_x < 4 else 4
@@ -253,7 +253,7 @@ class Player():
         for i in range(len(level_builder.refills)):
             other = level_builder.refills[i]
             if(self.get_left() < other.get_right() and self.get_right() > other.get_left() and self.get_top() < other.get_bottom() and self.get_bottom() > other.get_top()):
-                self.gun.bullet_count += 1
+                self.rocket.rocket_count += 1
                 level_builder.populate_refill()
                 self.score += 1
         
@@ -272,7 +272,7 @@ class Player():
         for i in range(len(level_builder.refills)):
             other = level_builder.refills[i]
             if(self.get_left() < other.get_right() and self.get_right() > other.get_left() and self.get_top() < other.get_bottom() and self.get_bottom() > other.get_top()):
-                self.gun.bullet_count += 1
+                self.rocket.rocket_count += 1
                 level_builder.populate_refill()
                 self.score += 1
 
@@ -322,17 +322,15 @@ class Player():
         return self.position.y + (self.player_sprite.get_height() / 2)
 
     def draw(self, screen):
-        self.gun.draw(screen)
-        screen.blit(self.elytra_sprite, self.blit_position())
-        screen.blit(self.player_sprite, self.position)
-        #pygame.draw.circle(screen, (0,0,0), (self.position.x - 14 + self.offset.x, self.position.y - 10 + self.offset.y), 4)
-        #pygame.draw.circle(screen, (0,0,0), (self.position.x + 4 + self.offset.x , self.position.y - 10 + self.offset.y ), 4)
-
+        self.rocket.draw(screen)
+        screen.blit(self.elytra_sprite, (self.blit_position()[0] - (self.player_sprite.get_width() / 4), self.blit_position()[1]))
+        screen.blit(self.player_sprite, self.blit_position())
+        
     def blit_position(self):
         return (self.position.x - (self.player_sprite.get_width() / 2), self.position.y - (self.player_sprite.get_height() / 2))
 
     def shoot(self):
-        if(self.gun.bullet_count <= 0):
+        if(self.rocket.rocket_count <= 0):
             return
         mouse_x, mouse_y = pygame.mouse.get_pos()
         rel_x, rel_y = mouse_x - self.position.x, mouse_y - self.position.y
@@ -353,12 +351,12 @@ class Refill:
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
-        self.gun_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
-        self.gun_sprite = pygame.transform.scale(self.gun_sprite, (40, 20))
-        self.gun_sprite = pygame.transform.rotate(self.gun_sprite, 90)
+        self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
+        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (40, 20))
+        self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, 90)
 
     def draw(self, screen):
-        screen.blit(self.gun_sprite, self.position)
+        screen.blit(self.rocket_sprite, self.position)
     
     def get_right(self):
         return self.position.x + 30
@@ -678,19 +676,19 @@ class Boss:                                                #change/fix
         self.rectlist = [self.rect]
         self.angle = 0
         self.count = 1
-        self.bullets = []
+        self.rockets = []
 
     def draw(self, screen):
         self.move()
-        bullets_copy = self.bullets.copy()
-        for i in range(0, len(bullets_copy)):
-                if(bullets_copy[i].position.x <= 0) or (bullets_copy[i].position.x >= 760) or (bullets_copy[i].position.y <= 0) or (bullets_copy[i].position.y >= 760):
-                    self.rectlist.remove(self.bullets[i])
-                    self.bullets.remove(bullets_copy[i])
+        rockets_copy = self.rockets.copy()
+        for i in range(0, len(rockets_copy)):
+                if(rockets_copy[i].position.x <= 0) or (rockets_copy[i].position.x >= 760) or (rockets_copy[i].position.y <= 0) or (rockets_copy[i].position.y >= 760):
+                    self.rectlist.remove(self.rockets[i])
+                    self.rockets.remove(rockets_copy[i])
                     break
-                bullets_copy[i].move()
-                self.rectlist[i+1] = bullets_copy[i]
-                bullets_copy[i].draw(screen)
+                rockets_copy[i].move()
+                self.rectlist[i+1] = rockets_copy[i]
+                rockets_copy[i].draw(screen)
         pygame.draw.rect(screen,(0,255,0),self.rect)
     
     def move(self):
@@ -702,12 +700,12 @@ class Boss:                                                #change/fix
             self.angle -= 3
         elif self.count ==1:
             self.angle += 3
-        bullet_pos = Vector2()
-        bullet_pos.x = self.position.x + 25
-        bullet_pos.y = self.position.y + 25
-        bullet = Bullet(bullet_pos, self.angle)
-        self.bullets.append(bullet)
-        self.rectlist.append(bullet)
+        rocket_pos = Vector2()
+        rocket_pos.x = self.position.x + 25
+        rocket_pos.y = self.position.y + 25
+        rocket = rocket(rocket_pos, self.angle)
+        self.rockets.append(rocket)
+        self.rectlist.append(rocket)
     
     def gravity(self):
         self.position.y += self.gravity_scale * 0
@@ -802,17 +800,17 @@ class LevelBuilder:
         enemy = Boss(position)
         self.enemies.append(enemy)
     
-    def collision_detection(self, bullet,wavenum):
+    def collision_detection(self, rocket,wavenum):
         enemies_copy = self.enemies.copy()
         for i in range(0, len(enemies_copy)):
             if wavenum == 2:
-                if(enemies_copy[i].rectlist[0].colliderect(bullet.rect)):
+                if(enemies_copy[i].rectlist[0].colliderect(rocket.rect)):
                     self.killed += 1
                     self.enemies.remove(enemies_copy[i])    #original inside: enemies_copy[i].rectlist.remove(rect)
                     break
             elif wavenum == 4:
                 for rect in self.enemies[i].bombs:
-                    if(rect.colliderect(bullet.rect)):
+                    if(rect.colliderect(rocket.rect)):
                         exp_pos = Vector2()
                         exp_pos.x = rect.x 
                         exp_pos.y = rect.y - 20
@@ -847,7 +845,7 @@ class Game:
         self.score = 0
         wave_num = 1
         self.last_level = 0
-        self.level3()
+        self.level1()
     
     def player_died(self):
         ([self.level1, self.level2, self.level3, self.level4])[self.last_level - 1]()
@@ -872,11 +870,11 @@ class Game:
             self.handle_dt()
             self.clear_screen()
 
-            self.player.gun.render_current_ammo(screen)
+            self.player.rocket.render_current_ammo(screen)
             
             self.level_builder.draw(screen)
             self.player.move()
-            self.player.handle_gun()
+            self.player.handle_rocket()
             self.player.collision_detection(self.level_builder)
             self.player.check_state()
             self.player.draw(self.screen)
@@ -904,7 +902,7 @@ class Game:
                 self.level_builder.more_enemies += 2
                 timenow1 = pygame.time.get_ticks()
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 30:   
-                self.player.gun.bullet_count += 2
+                self.player.rocket.rocket_count += 2
                 self.level2()
 
     def level2(self):
@@ -938,7 +936,7 @@ class Game:
             self.handle_dt()
             self.clear_screen()
 
-            self.player.gun.render_current_ammo(screen)
+            self.player.rocket.render_current_ammo(screen)
                     
             for i in range(len(self.level_builder.enemies)-1):
                 self.level_builder.enemies[i].move(self.player.position.x, self.player.position.y)   
@@ -946,14 +944,14 @@ class Game:
             self.level_builder.draw(screen)
             if tb.allow == True:
                 self.player.move()
-                self.player.handle_gun()
+                self.player.handle_rocket()
                 self.player.collision_detection(self.level_builder)
             else:
-                self.player.handle_gun()
+                self.player.handle_rocket()
             self.player.check_state()
 
-            for i in range(len(self.player.gun.bullets)):
-                self.level_builder.collision_detection(self.player.gun.bullets[i],2)
+            for i in range(len(self.player.rocket.rockets)):
+                self.level_builder.collision_detection(self.player.rocket.rockets[i],2)
             
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 15:
                 tb_pos = Vector2()
@@ -1016,7 +1014,7 @@ class Game:
             self.handle_dt()
             self.clear_screen()
 
-            self.player.gun.render_current_ammo(screen)
+            self.player.rocket.render_current_ammo(screen)
             
             enemies_copy = self.level_builder.enemies.copy()
             for i in range(0, len(enemies_copy)):
@@ -1028,7 +1026,7 @@ class Game:
             
             self.level_builder.draw(screen)
             self.player.move()
-            self.player.handle_gun()
+            self.player.handle_rocket()
             self.player.collision_detection(self.level_builder)
             self.player.check_state()
             
@@ -1067,7 +1065,7 @@ class Game:
         self.level_builder.populate_refill()
         self.level_builder.enemies = []
         self.player.health = 100
-        self.player.gun.bullet_count += 10
+        self.player.rocket.rocket_count += 10
         next_time = time.time()
         elapsed_time = time.time()
         min_time = 5
@@ -1079,17 +1077,17 @@ class Game:
             self.handle_dt()
             self.clear_screen()
 
-            self.player.gun.render_current_ammo(screen)
+            self.player.rocket.render_current_ammo(screen)
             
             self.level_builder.draw(screen)
             self.player.move()
-            self.player.handle_gun()
+            self.player.handle_rocket()
             self.player.health_collision_detection(self.level_builder)
             self.player.check_state()
             self.player.draw(self.screen)
 
-            for i in range(len(self.player.gun.bullets)):
-                self.level_builder.collision_detection(self.player.gun.bullets[i],4)
+            for i in range(len(self.player.rocket.rockets)):
+                self.level_builder.collision_detection(self.player.rocket.rockets[i],4)
 
             self.score = self.player.get_score()
 
@@ -1143,11 +1141,11 @@ class Game:
             self.handle_dt()
             self.clear_screen()
 
-            self.player.gun.render_current_ammo(screen)
+            self.player.rocket.render_current_ammo(screen)
             
             self.level_builder.draw(screen)
             self.player.move()
-            self.player.handle_gun()
+            self.player.handle_rocket()
             self.player.collision_detection(self.level_builder)
             self.player.check_state()
             self.player.draw(self.screen)
@@ -1177,7 +1175,7 @@ class Game:
                     sys.exit()
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self.player.shoot()      
-                    self.player.gun.shoot()        
+                    self.player.rocket.shoot()        
 
     def clear_screen(self):
         self.screen.fill(self.background_color)
