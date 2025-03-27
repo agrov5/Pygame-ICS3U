@@ -64,7 +64,7 @@ class RocketBullet():
         self.position.x = position.x
         self.position.y = position.y
         self.rect = pygame.Rect(self.position.x, self.position.y, 5, 5)
-        self.dx = math.cos(angle) * 10
+        self.dx = math.cos(angle) * 1
         self.dy = math.sin(angle) * 10
         self.distance_traveled = 0
     
