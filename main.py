@@ -207,8 +207,7 @@ class Player():
         self.position.x -= self.velocity.x * dt
         self.position.y -= self.velocity.y * dt
         self.rect = pygame.Rect(self.position.x,self.position.y, 50,60)
-        
-
+    
     
     def handle_rocket(self):
         self.rocket.set_position(self.position)
@@ -242,11 +241,11 @@ class Player():
             self.position.x = screen_width
         if(self.position.x > screen_width):
             self.position.x = 0
-        # if self.allowy == True:
-        #     if(self.position.y < 0):
-        #         self.position.y = screen_height
-        #     if(self.position.y > screen_height):
-        #         self.position.y = 0
+        if self.allowy == True:
+            if(self.position.y < 0):
+                self.position.y = screen_height-30
+            if(self.position.y > screen_height):
+                self.position.y = 0
 
     def get_score(self):
         return self.score
@@ -281,7 +280,7 @@ class Player():
                 if self.rect.colliderect(rect):
                     self.is_dead = True
         if self.allowy == False:
-            if(self.position.y > 850):
+            if(self.position.y > screen_height-10):
                 self.is_dead = True
     
     def health_collision_detection(self, level_builder):
@@ -318,7 +317,7 @@ class Player():
                     self.add_force(vector, 400)
                     break
         if self.allowy == False:
-            if(self.position.y > 850):
+            if(self.position.y > screen_height):
                 w, h = pygame.display.get_surface().get_size()
                 self.position.xy = w / 2, h / 5
                 self.health -= 10
@@ -346,6 +345,10 @@ class Player():
             arrow_x = self.position.x - (self.arrow_img.get_width() / 2)
             arrow_y = 0
             screen.blit(self.arrow_img, (arrow_x, arrow_y))
+            
+            font = pygame.font.SysFont(None, 20)
+            height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
+            screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
 
         
     def blit_position(self):
