@@ -1,4 +1,4 @@
-import pygame, sys, math, random, time
+import pygame, sys, math, random, time, os
 
 from pygame import Vector2, sprite
 from pygame import mixer
@@ -6,8 +6,17 @@ from pygame.draw import rect
 
 global dt
 
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+
+
+
 pygame.init()
-screen = pygame.display.set_mode((800, 800))
+
+info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
+screen_width,screen_height = info.current_w,info.current_h
+
+screen = pygame.display.set_mode((screen_width, screen_height))
+
 pygame.display.set_caption("Burger Cat")
 favicon = pygame.image.load("data/images/Burger Cat.png")
 pygame.display.set_icon(favicon)
@@ -91,7 +100,8 @@ class Rocket():
 
     def render_current_ammo(self, screen):
         text = self.font.render(str(self.rocket_count), False, (200,200,200))
-        screen.blit(text, (300,200))
+        text_width, text_height = self.font.size(str(self.rocket_count))
+        screen.blit(text, (screen_width/2-text_width/2,screen_height/2-text_height/2))
     
     def shoot(self):
         if(self.rocket_count > 0):
@@ -176,8 +186,8 @@ class Player():
         self.rotation = pygame.Vector2()
         self.offset = pygame.Vector2()
         self.rocket = Rocket()
-        self.drag = 100
-        self.gravity_scale = 270
+        self.drag = 50
+        self.gravity_scale = 250
         self.allowy = False
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
         self.player_sprite = pygame.transform.scale(self.player_sprite, (50, 60))
@@ -734,10 +744,10 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            random_pos = random.randint(0, 760)
+            random_pos = random.randint(100, screen_width-100)
             position = Vector2()
             position.x = random_pos
-            position.y = -30
+            position.y = screen_height/12
             enemy = Enemy1(position)
             self.enemies.append(enemy)
     
@@ -883,7 +893,9 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
+            text_width, text_height = self.font.size("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
 
             pygame.display.flip()
             self.handle_events()
@@ -971,9 +983,13 @@ class Game:
             self.score = self.player.get_score()
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
+            
             text = self.font.render("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies", False, (0,0,0))
-            screen.blit(text, (20,20))
-
+            
+            text_width, text_height = self.font.size("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
+            
             pygame.display.flip()
             self.handle_events()
 
@@ -1035,7 +1051,11 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
+            
+            text_width, text_height = self.font.size("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
+            
 
             pygame.display.flip()
             self.handle_events()
@@ -1093,12 +1113,16 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
-
+            
+            text_width, text_height = self.font.size("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
+            
             #Health Bar
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             health_text = self.font.render("Player Health", False, (0,0,0))
-            screen.blit(health_text, (20,700))
+            text_width, text_height = self.font.size("Player Health")
+            screen.blit(health_text, (screen_width/10-text_width/2,screen_height/6-text_height/2))
             player_healthbar = pygame.Rect(20,720,self.player.health, 15) 
             pygame.draw.rect(screen, (225, 0, 0), player_healthbar)
 
@@ -1203,24 +1227,28 @@ class Menu():
 
             logo = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
             logo = pygame.transform.scale(logo, (100, 120))
-            screen.blit(logo, (350, 60))
+            screen.blit(logo, (screen_width/2 -100, 60))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 70)
             text = self.font.render("Burger Cat", False, (100,100,100))
-            screen.blit(text, (170, 180))
+            text_width, text_height = self.font.size("Burger Cat")
+            screen.blit(text, (screen_width/2 - text_width/2, 180))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
             text = self.font.render("By: Akshit E. & Aryan G.", False, (0, 0, 139))
-            screen.blit(text, (300, 285))
+            text_width, text_height = self.font.size("By: Akshit E. & Aryan G.")
+            screen.blit(text, (screen_width/2 - text_width/2, 285))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 50)
             text = self.font.render("Click To Play", False, (200,200,200))
-            screen.blit(text, (230,340 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Click To Play")
+            screen.blit(text, (screen_width/2 - text_width/2,340 + (math.sin(time.time() * 10) * 5)))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 30)
             highscore_value = open("data/serialisation/highscore.csv", "r").readline()
             highscore = self.font.render("Highscore: " + str(highscore_value), False, (180,180,180))
-            screen.blit(highscore, (300,400 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Highscore: " + str(highscore_value))
+            screen.blit(highscore, (screen_width/2 - text_width/2,400 + (math.sin(time.time() * 10) * 5)))
             pygame.display.flip()
             self.handle_events()
 
@@ -1248,11 +1276,13 @@ class Menu():
             
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 70)
             text = self.font.render("Wave " + str(wave_num), False, (100,100,100))
-            screen.blit(text, (250, 200))
+            text_width, text_height = self.font.size("Wave " + str(wave_num))
+            screen.blit(text, (screen_width/2 - text_width/2, 200))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 50)
             text = self.font.render("Goal: " + goals[wave_num -1], False, (200,200,200))
-            screen.blit(text, (80,340 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Goal: " + goals[wave_num -1])
+            screen.blit(text, (screen_width/2 - text_width/2,340 + (math.sin(time.time() * 10) * 5)))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
