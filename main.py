@@ -8,11 +8,9 @@ global dt
 
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
-
-
 pygame.init()
 
-info = pygame.display.Info() # You have to call this before pygame.display.set_mode()
+info = pygame.display.Info() 
 screen_width,screen_height = info.current_w,info.current_h
 
 screen = pygame.display.set_mode((screen_width, screen_height))
@@ -70,8 +68,8 @@ class RocketBullet():
 
     def __init__(self, position, angle):
         self.position = Vector2()
-        self.position.x = position.x
-        self.position.y = position.y
+        self.position.x = screen_width
+        self.position.y = screen_height
         self.rect = pygame.Rect(self.position.x, self.position.y, 5, 5)
         self.dx = math.cos(angle) * 1
         self.dy = math.sin(angle) * 10
@@ -89,8 +87,10 @@ class Rocket():
     def __init__(self):
         self.rocket_sprite = None
         self.position = Vector2()
+        self.position.x = screen_width
+        self.position.y = screen_height
         self.is_flipped = False
-        self.rocket_count = 10
+        self.rocket_count = 15
         pygame.font.init()
         self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 300)
         self.position = pygame.Vector2()
@@ -180,7 +180,7 @@ class Player():
         self.score = 0
         self.health = 100
         self.position = pygame.Vector2()
-        w, h = pygame.display.get_surface().get_size()
+        w, h = screen_width, screen_height
         self.position.xy = w / 2, h / 5
         self.velocity = pygame.Vector2()
         self.rotation = pygame.Vector2()
@@ -192,9 +192,13 @@ class Player():
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
         self.player_sprite = pygame.transform.scale(self.player_sprite, (50, 60))
         self.elytra_sprite = pygame.image.load('data/images/Elytra.png').convert_alpha()
+        
         self.elytra_sprite = pygame.transform.scale(self.elytra_sprite, (70, 70))
         self.rect = pygame.Rect(self.position.x,self.position.y, 10,10)
         self.rocket.set_position(self.position)
+        
+        self.arrow_img = pygame.image.load('data/images/Arrow.png').convert_alpha()
+        self.arrow_img = pygame.transform.scale(self.arrow_img, (40, 40))
 
     def move(self):
         self.gravity()
@@ -203,6 +207,8 @@ class Player():
         self.position.x -= self.velocity.x * dt
         self.position.y -= self.velocity.y * dt
         self.rect = pygame.Rect(self.position.x,self.position.y, 50,60)
+        
+
     
     def handle_rocket(self):
         self.rocket.set_position(self.position)
@@ -233,14 +239,14 @@ class Player():
 
     def wall_detection(self):
         if(self.position.x < 0):
-            self.position.x = 800
-        if(self.position.x > 800):
+            self.position.x = screen_width
+        if(self.position.x > screen_width):
             self.position.x = 0
-        if self.allowy == True:
-            if(self.position.y < 0):
-                self.position.y = 800
-            if(self.position.y > 800):
-                self.position.y = 0
+        # if self.allowy == True:
+        #     if(self.position.y < 0):
+        #         self.position.y = screen_height
+        #     if(self.position.y > screen_height):
+        #         self.position.y = 0
 
     def get_score(self):
         return self.score
@@ -335,6 +341,12 @@ class Player():
         self.rocket.draw(screen)
         screen.blit(self.elytra_sprite, (self.blit_position()[0] - (self.player_sprite.get_width() / 4), self.blit_position()[1]))
         screen.blit(self.player_sprite, self.blit_position())
+        
+        if self.position.y < 0:
+            arrow_x = self.position.x - (self.arrow_img.get_width() / 2)
+            arrow_y = 0
+            screen.blit(self.arrow_img, (arrow_x, arrow_y))
+
         
     def blit_position(self):
         return (self.position.x - (self.player_sprite.get_width() / 2), self.position.y - (self.player_sprite.get_height() / 2))
@@ -757,7 +769,7 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            options = [(0,random.randint(0,760)), (random.randint(0,760),0), (760,random.randint(0,760)), (random.randint(0,760),760)]
+            options = [(0,random.randint(0,screen_height)), (random.randint(0,screen_width),0), (screen_width,random.randint(0,screen_height)), (random.randint(0,screen_width),screen_height)]
             choose = random.randint(0,3)
             position = Vector2()
             position.x = options[choose][0]
@@ -793,7 +805,7 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            random_pos = random.randint(0, 760)
+            random_pos = random.randint(0, screen_width)
             position = Vector2()
             position.x = random_pos
             position.y = 0
@@ -1182,7 +1194,9 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Kill the Boss", False, (0,0,0))
-            screen.blit(text, (20,20))
+            text_width, text_height = self.font.size("Goal: Kill the Boss")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
 
             pygame.display.flip()
             self.handle_events()
