@@ -346,9 +346,10 @@ class Player():
             arrow_y = 0
             screen.blit(self.arrow_img, (arrow_x, arrow_y))
             
-            font = pygame.font.SysFont(None, 20)
-            height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
-            screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
+            ## Display height above "y" under arrow
+            # font = pygame.font.SysFont(None, 20)
+            # height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
+            # screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
 
         
     def blit_position(self):
@@ -1134,12 +1135,22 @@ class Game:
             screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
             
             #Health Bar
-            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
-            health_text = self.font.render("Player Health", False, (0,0,0))
-            text_width, text_height = self.font.size("Player Health")
-            screen.blit(health_text, (screen_width/10-text_width/2,screen_height/6-text_height/2))
-            player_healthbar = pygame.Rect(20,720,self.player.health, 15) 
-            pygame.draw.rect(screen, (225, 0, 0), player_healthbar)
+            max_health = 100
+            bar_width = int(screen_width * 0.15)
+            bar_height = int(screen_height * 0.02)
+            health_ratio = self.player.health / max_health
+
+            font_size = int(screen_height * 0.03)
+            font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", font_size)
+            label = font.render("Health", True, (0, 0, 0))
+            screen.blit(label, (20, screen_height - bar_height - 50))
+
+            bg_rect = pygame.Rect(20, screen_height - bar_height - 20, bar_width, bar_height)
+            fill_rect = pygame.Rect(20, screen_height - bar_height - 20, int(bar_width * health_ratio), bar_height)
+
+            pygame.draw.rect(screen, (50, 50, 50), bg_rect)
+            pygame.draw.rect(screen, (200, 0, 0), fill_rect)
+            pygame.draw.rect(screen, (0, 0, 0), bg_rect, 2)
 
             pygame.display.flip()
             self.handle_events()
