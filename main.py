@@ -1,4 +1,4 @@
-import pygame, sys, math, random, time
+import pygame, sys, math, random, time, os
 
 from pygame import Vector2, sprite
 from pygame import mixer
@@ -6,8 +6,15 @@ from pygame.draw import rect
 
 global dt
 
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+
 pygame.init()
-screen = pygame.display.set_mode((1000, 800))
+
+info = pygame.display.Info() 
+screen_width,screen_height = info.current_w,info.current_h
+
+screen = pygame.display.set_mode((screen_width, screen_height))
+
 pygame.display.set_caption("Burger Cat")
 favicon = pygame.image.load("data/images/Burger Cat.png")
 pygame.display.set_icon(favicon)
@@ -58,8 +65,11 @@ class TimeBubble(pygame.sprite.Sprite):
         self.allow = False
 
 class RocketBullet():
-    def __init__(self, position, angle, speed=10):
-        self.position = Vector2(position)
+
+    def __init__(self, position, angle):
+        self.position = Vector2()
+        self.position.x = screen_width
+        self.position.y = screen_height
         self.rect = pygame.Rect(self.position.x, self.position.y, 5, 5)
         self.dx = math.cos(angle) * speed
         self.dy = math.sin(angle) * speed
@@ -79,15 +89,13 @@ class RocketBullet():
         return self.distance_traveled >= self.max_distance
 
 class Rocket():
-    def __init__(self, position):
-        self.position = Vector2(position)
-        self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
-        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (40, 20))
-        self.angle = 0
-        self.rockets = []
-        self.explosions = []
+    def __init__(self):
+        self.rocket_sprite = None
+        self.position = Vector2()
+        self.position.x = screen_width
+        self.position.y = screen_height
         self.is_flipped = False
-        self.rocket_count = 10
+        self.rocket_count = 15
         pygame.font.init()
         self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 300)
         self.refresh_sprite()
@@ -95,7 +103,8 @@ class Rocket():
 
     def render_current_ammo(self, screen):
         text = self.font.render(str(self.rocket_count), False, (200,200,200))
-        screen.blit(text, (300,200))
+        text_width, text_height = self.font.size(str(self.rocket_count))
+        screen.blit(text, (screen_width/2-text_width/2,screen_height/2-text_height/2))
     
     def shoot(self):
         if self.rocket_count > 0:
@@ -170,21 +179,25 @@ class Player():
         self.score = 0
         self.health = 100
         self.position = pygame.Vector2()
-        w, h = pygame.display.get_surface().get_size()
+        w, h = screen_width, screen_height
         self.position.xy = w / 2, h / 5
         self.velocity = pygame.Vector2()
         self.rotation = pygame.Vector2()
         self.offset = pygame.Vector2()
-        self.rocket = Rocket(self.position)
-        self.drag = 100
-        self.gravity_scale = 270
+        self.rocket = Rocket()
+        self.drag = 50
+        self.gravity_scale = 250
         self.allowy = False
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
         self.player_sprite = pygame.transform.scale(self.player_sprite, (50, 60))
         self.elytra_sprite = pygame.image.load('data/images/Elytra.png').convert_alpha()
+        
         self.elytra_sprite = pygame.transform.scale(self.elytra_sprite, (70, 70))
-        self.rect = self.player_sprite.get_rect()
-        self.rect.topleft = (self.position.x, self.position.y)
+        self.rect = pygame.Rect(self.position.x,self.position.y, 10,10)
+        self.rocket.set_position(self.position)
+        
+        self.arrow_img = pygame.image.load('data/images/Arrow.png').convert_alpha()
+        self.arrow_img = pygame.transform.scale(self.arrow_img, (40, 40))
 
     def move(self):
         self.gravity()
@@ -192,7 +205,8 @@ class Player():
         self.wall_detection()
         self.position.x -= self.velocity.x * dt
         self.position.y -= self.velocity.y * dt
-        self.rect.topleft = (self.position.x, self.position.y)
+        self.rect = pygame.Rect(self.position.x,self.position.y, 50,60)
+    
     
     def handle_rocket(self):
         self.rocket.set_position(self.position)
@@ -223,13 +237,13 @@ class Player():
 
     def wall_detection(self):
         if(self.position.x < 0):
-            self.position.x = 800
-        if(self.position.x > 800):
+            self.position.x = screen_width
+        if(self.position.x > screen_width):
             self.position.x = 0
         if self.allowy == True:
             if(self.position.y < 0):
-                self.position.y = 800
-            if(self.position.y > 800):
+                self.position.y = screen_height-30
+            if(self.position.y > screen_height):
                 self.position.y = 0
 
     def get_score(self):
@@ -265,7 +279,7 @@ class Player():
                 if self.rect.colliderect(rect):
                     self.is_dead = True
         if self.allowy == False:
-            if(self.position.y > 850):
+            if(self.position.y > screen_height-10):
                 self.is_dead = True
     
     def health_collision_detection(self, level_builder):
@@ -302,7 +316,7 @@ class Player():
                     self.add_force(vector, 400)
                     break
         if self.allowy == False:
-            if(self.position.y > 850):
+            if(self.position.y > screen_height):
                 w, h = pygame.display.get_surface().get_size()
                 self.position.xy = w / 2, h / 5
                 self.health -= 10
@@ -325,6 +339,17 @@ class Player():
         self.rocket.draw(screen)
         screen.blit(self.elytra_sprite, (self.blit_position()[0] - (self.player_sprite.get_width() / 4), self.blit_position()[1]))
         screen.blit(self.player_sprite, self.blit_position())
+        
+        if self.position.y < 0:
+            arrow_x = self.position.x - (self.arrow_img.get_width() / 2)
+            arrow_y = 0
+            screen.blit(self.arrow_img, (arrow_x, arrow_y))
+            
+            ## Display height above "y" under arrow
+            # font = pygame.font.SysFont(None, 20)
+            # height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
+            # screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
+
         
     def blit_position(self):
         return (self.position.x - (self.player_sprite.get_width() / 2), self.position.y - (self.player_sprite.get_height() / 2))
@@ -735,10 +760,10 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            random_pos = random.randint(0, 760)
+            random_pos = random.randint(100, screen_width-100)
             position = Vector2()
             position.x = random_pos
-            position.y = -30
+            position.y = screen_height/12
             enemy = Enemy1(position)
             self.enemies.append(enemy)
     
@@ -748,7 +773,7 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            options = [(0,random.randint(0,760)), (random.randint(0,760),0), (760,random.randint(0,760)), (random.randint(0,760),760)]
+            options = [(0,random.randint(0,screen_height)), (random.randint(0,screen_width),0), (screen_width,random.randint(0,screen_height)), (random.randint(0,screen_width),screen_height)]
             choose = random.randint(0,3)
             position = Vector2()
             position.x = options[choose][0]
@@ -784,7 +809,7 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            random_pos = random.randint(0, 760)
+            random_pos = random.randint(0, screen_width)
             position = Vector2()
             position.x = random_pos
             position.y = 0
@@ -890,7 +915,9 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
+            text_width, text_height = self.font.size("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
 
             pygame.display.flip()
             self.handle_events()
@@ -983,15 +1010,14 @@ class Game:
             
             self.player.draw(self.screen)
             self.score = self.player.get_score()
+
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             
-            if stuck_in_timebubble:
-                font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
-                escape_text = font.render("Press E to escape!", True, (0, 0, 0))
-                screen.blit(escape_text, (20, h - 40))
+            text = self.font.render("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies", False, (0,0,0))
             
-            font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
-            text = font.render(f"Goal: Kill {10 - self.level_builder.killed} enemies", False, (0, 0, 0))
-            screen.blit(text, (20, 20))
+            text_width, text_height = self.font.size("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
             
             pygame.display.flip()
             self.handle_events()
@@ -1060,7 +1086,11 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
+            
+            text_width, text_height = self.font.size("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
+            
 
             pygame.display.flip()
             self.handle_events()
@@ -1118,14 +1148,28 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0,0,0))
-            screen.blit(text, (20,20))
-
+            
+            text_width, text_height = self.font.size("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
+            
             #Health Bar
-            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
-            health_text = self.font.render("Player Health", False, (0,0,0))
-            screen.blit(health_text, (20,700))
-            player_healthbar = pygame.Rect(20,720,self.player.health, 15) 
-            pygame.draw.rect(screen, (225, 0, 0), player_healthbar)
+            max_health = 100
+            bar_width = int(screen_width * 0.15)
+            bar_height = int(screen_height * 0.02)
+            health_ratio = self.player.health / max_health
+
+            font_size = int(screen_height * 0.03)
+            font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", font_size)
+            label = font.render("Health", True, (0, 0, 0))
+            screen.blit(label, (20, screen_height - bar_height - 50))
+
+            bg_rect = pygame.Rect(20, screen_height - bar_height - 20, bar_width, bar_height)
+            fill_rect = pygame.Rect(20, screen_height - bar_height - 20, int(bar_width * health_ratio), bar_height)
+
+            pygame.draw.rect(screen, (50, 50, 50), bg_rect)
+            pygame.draw.rect(screen, (200, 0, 0), fill_rect)
+            pygame.draw.rect(screen, (0, 0, 0), bg_rect, 2)
 
             pygame.display.flip()
             self.handle_events()
@@ -1183,7 +1227,9 @@ class Game:
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 10)
             text = self.font.render("Goal: Kill the Boss", False, (0,0,0))
-            screen.blit(text, (20,20))
+            text_width, text_height = self.font.size("Goal: Kill the Boss")
+            
+            screen.blit(text, (screen_width/10 - text_width/2,screen_height/10 - text_height/2))
 
             pygame.display.flip()
             self.handle_events()
@@ -1228,24 +1274,28 @@ class Menu():
 
             logo = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
             logo = pygame.transform.scale(logo, (100, 120))
-            screen.blit(logo, (350, 60))
+            screen.blit(logo, (screen_width/2 -100, 60))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 70)
             text = self.font.render("Burger Cat", False, (100,100,100))
-            screen.blit(text, (170, 180))
+            text_width, text_height = self.font.size("Burger Cat")
+            screen.blit(text, (screen_width/2 - text_width/2, 180))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
             text = self.font.render("By: Akshit E. & Aryan G.", False, (0, 0, 139))
-            screen.blit(text, (300, 285))
+            text_width, text_height = self.font.size("By: Akshit E. & Aryan G.")
+            screen.blit(text, (screen_width/2 - text_width/2, 285))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 50)
             text = self.font.render("Click To Play", False, (200,200,200))
-            screen.blit(text, (230,340 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Click To Play")
+            screen.blit(text, (screen_width/2 - text_width/2,340 + (math.sin(time.time() * 10) * 5)))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 30)
             highscore_value = open("data/serialisation/highscore.csv", "r").readline()
             highscore = self.font.render("Highscore: " + str(highscore_value), False, (180,180,180))
-            screen.blit(highscore, (300,400 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Highscore: " + str(highscore_value))
+            screen.blit(highscore, (screen_width/2 - text_width/2,400 + (math.sin(time.time() * 10) * 5)))
             pygame.display.flip()
             self.handle_events()
 
@@ -1273,11 +1323,13 @@ class Menu():
             
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 70)
             text = self.font.render("Wave " + str(wave_num), False, (100,100,100))
-            screen.blit(text, (250, 200))
+            text_width, text_height = self.font.size("Wave " + str(wave_num))
+            screen.blit(text, (screen_width/2 - text_width/2, 200))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 50)
             text = self.font.render("Goal: " + goals[wave_num -1], False, (200,200,200))
-            screen.blit(text, (80,340 + (math.sin(time.time() * 10) * 5)))
+            text_width, text_height = self.font.size("Goal: " + goals[wave_num -1])
+            screen.blit(text, (screen_width/2 - text_width/2,340 + (math.sin(time.time() * 10) * 5)))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
