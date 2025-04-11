@@ -51,16 +51,14 @@ class TimeBubble(pygame.sprite.Sprite):
         self.allow = False
 
 class RocketBullet():
-
     def __init__(self, position, angle, speed=5):
         self.position = Vector2()
-        self.position.x = screen_width
-        self.position.y = screen_height
+        self.position.x, self.position.y = position.x, position.y
         self.rect = pygame.Rect(self.position.x, self.position.y, 5, 5)
         self.dx = math.cos(angle) * speed
         self.dy = math.sin(angle) * speed
         self.distance_traveled = 0
-        self.max_distance = 200
+        self.max_distance = 300
     
     def move(self):
         self.position.x += self.dx
@@ -83,13 +81,11 @@ class Rocket():
         self.rockets = []
         self.explosions = []
         self.is_flipped = False
-        self.rocket_count = 10
+        self.rocket_count = 15
         pygame.font.init()
         self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 300)
         self.refresh_sprite()
         mixer.init()
-        #self.position.x = screen_width
-        #self.position.y = screen_height
 
     def render_current_ammo(self, screen):
         text = self.font.render(str(self.rocket_count), False, (200,200,200))
@@ -105,6 +101,7 @@ class Rocket():
             mouse_x, mouse_y = pygame.mouse.get_pos()
             angle = math.atan2(mouse_y - self.position.y, mouse_x - self.position.x)
             rocket = RocketBullet(self.position, angle, speed=5)
+            print(self.position.x, self.position.y)
             self.rockets.append(rocket)
             self.rocket_count -= 1
         else:
@@ -175,7 +172,7 @@ class Player():
         self.rotation = pygame.Vector2()
         self.offset = pygame.Vector2()
         self.rocket = Rocket(self.position)
-        self.drag = 150
+        self.drag = 100
         self.gravity_scale = 250
         self.allowy = False
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
@@ -239,7 +236,7 @@ class Player():
     def get_score(self):
         return self.score
 
-    def check_state(self):
+    def check_state(self, last_level):
         global is_menu
         if(self.is_dead == True):
             old_highscore_value = open("data/serialisation/highscore.csv", "r").readline()
@@ -251,7 +248,7 @@ class Player():
             except:
                 pass
             is_menu = True
-            Menu(screen)
+            Menu(screen, last_level)
 
     def collision_detection(self, level_builder):
         for i in range(len(level_builder.refills)):
@@ -457,8 +454,8 @@ class Enemy2:
         angle = math.atan2(targety - self.position.y, targetx - self.position.x)
         self.dx = math.cos(angle) * 2
         self.dy = math.sin(angle) * 2
-        self.position.x += self.dx
-        self.position.y += self.dy
+        self.position.x += self.dx * 0.4
+        self.position.y += self.dy * 0.4
         self.rect = pygame.Rect(self.position, (30,50))
         self.rectlist = [self.rect]
     
@@ -661,7 +658,7 @@ class LevelBuilder:
                 self.enemies.remove(enemies_copy[i])
             
 class Game:
-    def __init__(self, screen):
+    def __init__(self, screen, last_level):
         global wave_num
         self.screen = screen
         self.size = None
@@ -670,13 +667,28 @@ class Game:
         self.background_color = 240, 240, 240
         self.player = Player()
         self.level_builder = LevelBuilder()
-        self.menu = Menu(screen)
+        self.last_level = last_level
+        self.menu = Menu(screen, self.last_level)
         self.clock = pygame.time.Clock()
         self.score = 0
         wave_num = 1
-        self.last_level = 1
         self.bg_img = pygame.image.load('data/images/end_bg.jpg').convert_alpha()
         self.bg_img = pygame.transform.scale(self.bg_img, (screen_width, screen_height))
+        self.cloud1 = pygame.image.load('data/images/cloud-1.png').convert_alpha()
+        self.cloud1 = pygame.transform.scale(self.cloud1, (400, 80))
+        self.cloud2 = pygame.image.load('data/images/cloud-2.png').convert_alpha()
+        self.cloud2 = pygame.transform.scale(self.cloud1, (200, 80))
+        self.cloud3 = pygame.image.load('data/images/cloud-3.png').convert_alpha()
+        self.cloud3 = pygame.transform.scale(self.cloud1, (200, 80))
+        self.cloud4 = pygame.image.load('data/images/cloud-4.png').convert_alpha()
+        self.cloud4 = pygame.transform.scale(self.cloud1, (400, 80))
+
+        self.clouds = [
+            [self.cloud1, random.randint(0, screen_width), screen_height - 150, random.uniform(0.3, 1.0)],
+            [self.cloud2, random.randint(0, screen_width), screen_height - 170, random.uniform(0.3, 1.0)],
+            [self.cloud3, random.randint(0, screen_width), screen_height - 130, random.uniform(0.3, 1.0)],
+            [self.cloud4, random.randint(0, screen_width), screen_height - 160, random.uniform(0.3, 1.0)]
+        ]
         self.go_to_last_level()
 
     def go_to_last_level(self):
@@ -701,7 +713,6 @@ class Game:
         while ((not is_menu) or (wave_num == 1)):
             self.handle_dt()
             self.clear_screen()
-            screen.blit(self.bg_img, (0, 0))
 
             self.player.rocket.render_current_ammo(screen)
             
@@ -709,13 +720,13 @@ class Game:
             self.player.move()
             self.player.handle_rocket()
             self.player.collision_detection(self.level_builder)
-            self.player.check_state()
+            self.player.check_state(self.last_level)
             self.player.draw(self.screen)
 
             self.score = self.player.get_score()
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
-            text = self.font.render("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (255,255,255))
+            text = self.font.render("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
             text_width, text_height = self.font.size("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
             screen.blit(text, (screen_width/10 - text_width/2, 0))
 
@@ -736,7 +747,7 @@ class Game:
                 self.level_builder.more_enemies += 2
                 timenow1 = pygame.time.get_ticks()
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 30:   
-                self.player.rocket.rocket_count += 2
+                self.player.rocket.rocket_count += 5
                 self.last_level = 2
                 self.go_to_last_level()
 
@@ -757,9 +768,10 @@ class Game:
         enemy_iteration = 0
         eject_cooldown = 0 
         stuck_in_timebubble = False
-        tb_pos = Vector2(random.randint(0, 760), random.randint(0, 760))
+        tb_pos = Vector2(random.randint(10, screen_width-10), random.randint(10, screen_height-10))
         tb = TimeBubble(tb_pos)
         tb.allow = True
+        
         timenow = pygame.time.get_ticks()
         self.handle_dt()
         while not is_menu or wave_num == 2:
@@ -780,13 +792,13 @@ class Game:
                 self.player.collision_detection(self.level_builder)
             self.player.handle_rocket()
             
-            self.player.check_state()
+            self.player.check_state(self.last_level)
             
             for rocket in self.player.rocket.rockets:
                 self.level_builder.collision_detection(rocket, "rocket", 2)
             
             if abs((pygame.time.get_ticks() - timenow) / 1000) >= 15:
-                tb_pos = Vector2(random.randint(0, 760), random.randint(0, 760))
+                tb_pos = Vector2(random.randint(10, screen_width-10), random.randint(10, screen_height-10))
                 tb = TimeBubble(tb_pos)
                 timenow = pygame.time.get_ticks()
             
@@ -813,9 +825,14 @@ class Game:
             self.player.draw(self.screen)
             self.score = self.player.get_score()
 
+            if stuck_in_timebubble:
+                font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
+                escape_text = font.render("Press E to escape!", True, (0, 0, 0))
+                screen.blit(escape_text, (20, h - 40))
+
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
-            text = self.font.render("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies", False, (255,255,255))
-            text_width, text_height = self.font.size("Goal: Kill " + str(1 - self.level_builder.killed) + " enemies")
+            text = self.font.render("Goal: Kill " + str(10 - self.level_builder.killed) + " enemies", False, (0, 0, 0))
+            text_width, text_height = self.font.size("Goal: Kill " + str(10 - self.level_builder.killed) + " enemies")
             screen.blit(text, (screen_width/10 - text_width/2, 0))
             
             pygame.display.flip()
@@ -880,13 +897,13 @@ class Game:
             self.player.move()
             self.player.handle_rocket()
             self.player.collision_detection(self.level_builder)
-            self.player.check_state()
+            self.player.check_state(self.last_level)
             
             self.player.draw(self.screen)
             self.score = self.player.get_score()
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
-            text = self.font.render("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (255,255,255))
+            text = self.font.render("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
             text_width, text_height = self.font.size("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
             screen.blit(text, (screen_width/10 - text_width/2, 0))
             
@@ -919,19 +936,37 @@ class Game:
                 self.player.rocket.shoot()     
 
     def clear_screen(self):
-        #self.screen.fill(self.background_color)
-        screen.blit(self.bg_img, (0, 0))
+        self.screen.fill(self.background_color)
+        #screen.blit(self.bg_img, (0, 0))
+
+        '''clouds = [
+            [self.cloud1, random.randint(0, screen_width), screen_height - 150, random.uniform(0.3, 1.0)],
+            [self.cloud2, random.randint(0, screen_width), screen_height - 170, random.uniform(0.3, 1.0)],
+            [self.cloud3, random.randint(0, screen_width), screen_height - 130, random.uniform(0.3, 1.0)],
+            [self.cloud4, random.randint(0, screen_width), screen_height - 160, random.uniform(0.3, 1.0)]
+        ]'''
+
+        for cloud in self.clouds:
+            surf, x, y, speed = cloud
+            x += speed  # move cloud to the right
+            if x > screen_width:  # if off screen
+                x = -surf.get_width()  # wrap to left
+                y = random.randint(screen_height - 180, screen_height - 120)  # random vertical offset
+                speed = random.uniform(0.3, 1.0)  # change speed for more natural motion
+            cloud[1], cloud[2], cloud[3] = x, y, speed  # update cloud
+            screen.blit(surf, (x, y))
 
     def handle_dt(self):
         global dt
         dt = self.clock.tick() / 1000
 
 class Menu():
-    def __init__(self, screen):
+    def __init__(self, screen, last_level):
         self.background_color = 240, 240, 240
         self.screen = screen
         self.bg_img = pygame.image.load('data/images/end_bg.jpg').convert_alpha()
         self.bg_img = pygame.transform.scale(self.bg_img, (screen_width, screen_height))
+        self.last_level = last_level
         self.update()
 
     def update(self):
@@ -973,8 +1008,8 @@ class Menu():
             self.handle_events()
 
     def clear_screen(self):
-        #self.screen.fill(self.background_color)
-        screen.blit(self.bg_img, (0, 0))
+        self.screen.fill(self.background_color)
+        #screen.blit(self.bg_img, (0, 0))
             
     def handle_events(self):
         global is_menu
@@ -986,9 +1021,9 @@ class Menu():
                     sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 is_menu = False
-                Game(screen)
+                Game(screen, self.last_level)
 
-    def new_wave(self,wave_num):
+    def new_wave(self, wave_num):
         global is_wave
         pygame.font.init()
     
@@ -1027,10 +1062,11 @@ mixer.init()
 mixer.music.load("data/audio/music.mp3")
 mixer.music.set_volume(0.01)
 mixer.music.play(-1)
+last_level = 2
 
 while(True):
     if(is_menu):
-        instance = Menu(screen)
+        instance = Menu(screen, last_level)
     else:
-        instance = Game(screen)  
-    print(is_menu)
+        instance = Game(screen, last_level) 
+        last_level = instance.last_level
