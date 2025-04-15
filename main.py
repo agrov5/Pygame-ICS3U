@@ -682,12 +682,12 @@ class Game:
         self.cloud3 = pygame.transform.scale(self.cloud1, (200, 80))
         self.cloud4 = pygame.image.load('data/images/cloud-4.png').convert_alpha()
         self.cloud4 = pygame.transform.scale(self.cloud1, (400, 80))
-        self.clouds = [
-            [self.cloud1, random.randint(0, screen_width), screen_height - 150, random.uniform(0.3, 1.0)],
-            [self.cloud2, random.randint(0, screen_width), screen_height - 170, random.uniform(0.3, 1.0)],
-            [self.cloud3, random.randint(0, screen_width), screen_height - 130, random.uniform(0.3, 1.0)],
-            [self.cloud4, random.randint(0, screen_width), screen_height - 160, random.uniform(0.3, 1.0)]
-        ]
+        self.clouds = [] 
+
+        for _ in range(8):
+            cloud_img = random.choice([self.cloud1, self.cloud2, self.cloud3, self.cloud4])
+            self.clouds.append([cloud_img, random.randint(0, screen_width), screen_height - random.randint(100, 200), random.uniform(0.1, 0.5)])
+
         self.go_to_last_level()
 
     def go_to_last_level(self):
