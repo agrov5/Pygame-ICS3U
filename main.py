@@ -101,7 +101,6 @@ class Rocket():
             mouse_x, mouse_y = pygame.mouse.get_pos()
             angle = math.atan2(mouse_y - self.position.y, mouse_x - self.position.x)
             rocket = RocketBullet(self.position, angle, speed=5)
-            print(self.position.x, self.position.y)
             self.rockets.append(rocket)
             self.rocket_count -= 1
         else:
@@ -939,21 +938,14 @@ class Game:
         self.screen.fill(self.background_color)
         #screen.blit(self.bg_img, (0, 0))
 
-        '''clouds = [
-            [self.cloud1, random.randint(0, screen_width), screen_height - 150, random.uniform(0.3, 1.0)],
-            [self.cloud2, random.randint(0, screen_width), screen_height - 170, random.uniform(0.3, 1.0)],
-            [self.cloud3, random.randint(0, screen_width), screen_height - 130, random.uniform(0.3, 1.0)],
-            [self.cloud4, random.randint(0, screen_width), screen_height - 160, random.uniform(0.3, 1.0)]
-        ]'''
-
         for cloud in self.clouds:
             surf, x, y, speed = cloud
-            x += speed  # move cloud to the right
+            x += speed  
             if x > screen_width:  # if off screen
-                x = -surf.get_width()  # wrap to left
-                y = random.randint(screen_height - 180, screen_height - 120)  # random vertical offset
-                speed = random.uniform(0.3, 1.0)  # change speed for more natural motion
-            cloud[1], cloud[2], cloud[3] = x, y, speed  # update cloud
+                x = -surf.get_width()  # go to left
+                y = random.randint(screen_height - 180, screen_height - 120)  
+                speed = random.uniform(0.3, 1.0) 
+            cloud[1], cloud[2], cloud[3] = x, y, speed  
             screen.blit(surf, (x, y))
 
     def handle_dt(self):
