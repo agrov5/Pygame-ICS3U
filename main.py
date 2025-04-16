@@ -21,7 +21,22 @@ pygame.display.set_icon(favicon)
 
 is_menu = True
 
-# MIGHT NEED TO ADD EXPLOSION CLASS HERE IF WE DO LEVEL 4 BOMB ENEMIES
+class Explosion():
+    global dt
+    def __init__(self, position, size):
+        self.position = Vector2()
+        self.position.x = position.x
+        self.position.y = position.y
+        self.width = size
+
+    def draw(self, screen):
+        pygame.draw.circle(screen, (220, 0, 0), self.position, self.width)
+        pygame.draw.circle(screen, (255, 153, 51), self.position, self.width - (self.width / 2))
+    
+    def scale_down(self):
+        if(self.width > 0):
+            self.width -= dt * 80
+
 
 class TimeBubble(pygame.sprite.Sprite):
     global dt
@@ -268,7 +283,45 @@ class Player():
             if(self.position.y > screen_height-10):
                 self.is_dead = True
     
-    # WILL NEED TO ADD SOME LEVEL 4 STUFF HERE PROBABLY IF WE DO BOMB ENEMIES
+    def health_collision_detection(self, level_builder):
+        for i in range(len(level_builder.refills)):
+            other = level_builder.refills[i]
+            if(self.get_left() < other.get_right() and self.get_right() > other.get_left() and self.get_top() < other.get_bottom() and self.get_bottom() > other.get_top()):
+                self.rocket.rocket_count += 1
+                level_builder.populate_refill()
+                self.score += 1
+
+        for i in range(len(level_builder.enemies)):
+            other = level_builder.enemies[i]
+            for rect in level_builder.enemies[i].rectlist:
+                if self.rect.colliderect(rect):
+                    self.health -= 10
+            for rect in level_builder.enemies[i].bombs:
+                if(self.rect.colliderect(rect)):
+                    self.health -= 10
+                    exp_pos = Vector2()
+                    exp_pos.x = rect.x 
+                    exp_pos.y = rect.y - 20
+                    explosion = Explosion(exp_pos, 100)
+                    level_builder.enemies[i].explosions.append(explosion)
+                    level_builder.enemies[i].bombs.remove(rect)
+
+                    rel_x, rel_y = exp_pos.x - self.position.x, exp_pos.y - self.position.y
+                    vector = Vector2()
+                    vector.xy = rel_x, rel_y
+                    mag = vector.magnitude()
+                    vector.xy /= mag
+                    self.velocity.y = 0
+                    self.velocity.x = 0
+                    self.add_force(vector, 400)
+                    break
+        if self.allowy == False:
+            if(self.position.y > 850):
+                w, h = pygame.display.get_surface().get_size()
+                self.position.xy = w / 2, h / 5
+                self.health -= 10
+            if(self.health<=0):
+                self.is_dead = True
     
     def get_right(self):
         return self.position.x + (self.player_sprite.get_width() / 2)
@@ -292,7 +345,7 @@ class Player():
             arrow_y = 0
             screen.blit(self.arrow_img, (arrow_x, arrow_y))
             
-            # Display height above "y" under arrow
+            #Display height above "y" under arrow
             font = pygame.font.SysFont(None, 20)
             height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
             screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
@@ -463,43 +516,45 @@ class Enemy2:
 
 class Enemy3:
     global dt
-    def __init__(self, position,direction):
+    def __init__(self, position, direction):
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
+        self.speed = 2
         self.position1 = Vector2()
         self.laserect_pos = Vector2()
         self.gravity_scale = 0
         self.direction = direction 
         self.enemy_sprite = pygame.image.load('data/images/Shell.png').convert_alpha()
-        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 40))
-        self.enemy_sprite1 = pygame.transform.scale(self.enemy_sprite, (40, 40))
+        self.enemy_sprite_size = (40, 40)
+        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
+        self.enemy_sprite1 = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
 
         if self.direction == "y-axis":
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 90)
             self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite, 180)
             self.position1.y = position.y
-            self.laserect = pygame.Surface((740,10))
-            self.laserect_pos.x = self.position.x + 40
-            self.laserect_pos.y = self.position.y + 15
+            self.laserect = pygame.Surface((screen_width, 10))
+            self.laserect_pos.x = self.position.x + self.enemy_sprite_size[0]
+            self.laserect_pos.y = self.position.y + 1*self.enemy_sprite_size[1]//4
             if self.position.x == 0:
-                self.position1.x = position.x + 760
-            self.rect2 = pygame.Rect(self.laserect_pos,(740,10))
+                self.position1.x = position.x + screen_width - self.enemy_sprite_size[0]
+            self.rect2 = pygame.Rect(self.laserect_pos,(screen_width, self.enemy_sprite_size[1]//2))
         elif self.direction == "x-axis":
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 0)
             self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite, 180)
             self.position1.x = position.x
-            self.laserect = pygame.Surface((10,740))
-            self.laserect_pos.x = self.position.x + 15
-            self.laserect_pos.y = self.position.y + 40
+            self.laserect = pygame.Surface((10, screen_height))
+            self.laserect_pos.x = self.position.x + 1*self.enemy_sprite_size[0]//4
+            self.laserect_pos.y = self.position.y + self.enemy_sprite_size[1]
             if self.position.y == 0:
-                self.position1.y = position.y + 710
-            self.rect2 = pygame.Rect(self.laserect_pos,(10,740))
+                self.position1.y = position.y + screen_height - self.enemy_sprite_size[1]
+            self.rect2 = pygame.Rect(self.laserect_pos,(self.enemy_sprite_size[0]//2, screen_height))
 
-        self.rect = pygame.Rect(self.position,(40,40))
-        self.rect1 = pygame.Rect(self.position1,(40,40))
+        self.rect = pygame.Rect(self.position, self.enemy_sprite_size)
+        self.rect1 = pygame.Rect(self.position1, self.enemy_sprite_size)
         self.rectlist = [self.rect,self.rect1,self.rect2]
-        self.laserect.fill((255,0,0))
+        self.laserect.fill((255, 0, 0))
         self.xOffset = 40
         self.yOffset = 40
         self.count = 0
@@ -510,55 +565,129 @@ class Enemy3:
     def draw(self, screen):
         if self.first_spawn:
             screen.blit(self.enemy_sprite, self.position)
-            screen.blit(self.enemy_sprite1, self.position1)
             sound = mixer.Sound("data/audio/laser-charge.mp3")
             sound.set_volume(0.1)
             sound.play()
             screen.blit(self.laserect, self.laserect_pos)
+            screen.blit(self.enemy_sprite1, self.position1)
             self.first_spawn = False
         else:
             screen.blit(self.enemy_sprite, self.position)
-            screen.blit(self.enemy_sprite1, self.position1)
             screen.blit(self.laserect, self.laserect_pos)
+            screen.blit(self.enemy_sprite1, self.position1)
     
     def move(self):
         if self.direction == "y-axis":
             if self.position.y <= 100:
                 self.count = 0
-            elif self.position.y >= 600:
+            elif self.position.y >= screen_height - 100:
                 self.count = 1
             if self.count == 0:
-                self.position.y += 2
-                self.position1.y += 2
+                self.position.y += self.speed
+                self.position1.y += self.speed
             elif self.count == 1:
-                self.position.y -= 2
-                self.position1.y -= 2
-            self.traveled_distance += 2
-            self.laserect_pos.x = self.position.x + 40
-            self.laserect_pos.y = self.position.y + 15
-            self.rect2 = pygame.Rect(self.laserect_pos,(740,10))
+                self.position.y -= self.speed
+                self.position1.y -= self.speed
+            self.traveled_distance += self.speed
+            self.laserect_pos.x = self.position.x + self.enemy_sprite_size[0]
+            self.laserect_pos.y = self.position.y + 1*self.enemy_sprite_size[1]//4
+            self.rect2 = pygame.Rect(self.laserect_pos, (screen_width, self.enemy_sprite_size[1]//2))
         elif self.direction == "x-axis":
             if self.position.x <= 100:
                 self.count = 0
-            elif self.position.x >= 600:
+            elif self.position.x >= screen_width - 100:
                 self.count = 1
             if self.count == 0:
-                self.position.x += 2
-                self.position1.x += 2
+                self.position.x += self.speed
+                self.position1.x += self.speed
             elif self.count == 1:
-                self.position.x -= 2
-                self.position1.x -= 2
-            self.traveled_distance += 2
-            self.laserect_pos.x = self.position.x + 15
-            self.laserect_pos.y = self.position.y + 40
-            self.rect2 = pygame.Rect(self.laserect_pos,(10,740))
+                self.position.x -= self.speed
+                self.position1.x -= self.speed
+            self.traveled_distance += self.speed
+            self.laserect_pos.x = self.position.x + 1*self.enemy_sprite_size[0]//4
+            self.laserect_pos.y = self.position.y + self.enemy_sprite_size[1]
+            self.rect2 = pygame.Rect(self.laserect_pos,(self.enemy_sprite_size[0]//2, screen_height))
 
-        self.rect = pygame.Rect(self.position,(40,40))
-        self.rect1 = pygame.Rect(self.position1,(40,40))
+        self.rect = pygame.Rect(self.position, self.enemy_sprite_size)
+        self.rect1 = pygame.Rect(self.position1, self.enemy_sprite_size)
         self.rectlist = [self.rect,self.rect1,self.rect2]
     
     def gravity(self):
         self.position.y += 0
+
+class Enemy4:
+    global dt
+    def __init__(self, position):
+        self.position = Vector2()
+        self.position.x = position.x
+        self.position.y = position.y
+        self.gravity_scale = 0
+        self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
+        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
+        self.bomb_img = pygame.transform.scale(pygame.image.load('data/images/Grenade.png').convert_alpha(), (30, 50))
+        self.rect = pygame.Rect(self.position,(30,50))
+        self.speed = random.randrange(1, 4)
+        self.interval = random.randrange(1,10)
+        self.rectlist = [self.rect]
+        self.xOffset = 30
+        self.yOffset = 50
+        self.bombs = []
+        self.explosions = []
+        self.count = 0
+        self.timenow = pygame.time.get_ticks()
+
+    def draw(self, screen):
+        self.move()
+        screen.blit(self.enemy_sprite, self.position)
+
+        explosions_copy = self.explosions.copy()
+        for i in range(len(explosions_copy)):
+            if(explosions_copy[i].width <= 1):
+                self.rectlist.remove(self.rectlist[i])
+                self.explosions.remove(explosions_copy[i])
+                break
+            explosions_copy[i].scale_down()
+            explosions_copy[i].width -= 10
+            explosions_copy[i].draw(screen)
+        
+        for bomb in self.bombs:
+            screen.blit(self.bomb_img, (bomb.x-15,bomb.y))
+    
+    def move(self):
+        if self.position.x <= 0:
+            self.count = 0
+        elif self.position.x >= screen_width - 30:
+            self.count = 1
+        if self.count == 0:
+            self.position.x += self.speed
+        elif self.count == 1:
+            self.position.x -= self.speed
+        self.rect = pygame.Rect(self.position,(30, 50))
+        self.rectlist = [self.rect]
+        self.drop_bombs()
+    
+    def drop_bombs(self):
+        if abs(int((pygame.time.get_ticks() - self.timenow)/1000)) >= self.interval:
+            bomb = pygame.Rect(self.rect.centerx, self.rect.bottom, 20, 20)
+            self.bombs.append(bomb)
+            self.timenow = pygame.time.get_ticks()
+        for bomb in self.bombs:
+            bomb.y += 5
+        
+        self.reach_end()
+    
+    def reach_end(self):
+        bombs_copy = self.bombs.copy()
+        for bomb in bombs_copy:
+            if bomb.y >= screen_height:
+                # Create an explosion at the bomb's location
+                exp_pos = Vector2()
+                exp_pos.x = bomb.x 
+                exp_pos.y = bomb.y - 20
+                explosion = Explosion(exp_pos, 100)
+                self.explosions.append(explosion)
+                self.rectlist.append(pygame.Rect(exp_pos.x, exp_pos.y, 100, 100))
+                self.bombs.remove(bomb)
 
 class LevelBuilder:
     def __init__(self):
@@ -612,7 +741,7 @@ class LevelBuilder:
         sound.set_volume(0.1)
         sound.play()
         for i in range(rand):
-            options = [(0,0), (0,0), (0,700), (700,0)]
+            options = [(0, 0), (0, 0), (0, screen_height), (screen_width, 0)]
             choose = random.randint(0,3)
             position = Vector2()
             position.x = options[choose][0]
@@ -628,7 +757,18 @@ class LevelBuilder:
                     enemy = Enemy3(position,"x-axis")
             self.enemies.append(enemy)
     
-    # WILL NEED TO ADD SOME LEVEL 4 SPAWNING HERE
+    def spawn_enemies4(self):
+        rand = 5
+        sound = mixer.Sound("data/audio/Spawn.wav")
+        sound.set_volume(0.1)
+        sound.play()
+        for i in range(rand):
+            random_pos = random.randint(0, screen_width)
+            position = Vector2()
+            position.x = random_pos
+            position.y = 0
+            enemy = Enemy4(position)
+            self.enemies.append(enemy)
     
     def collision_detection(self, rocket, obj_type, wavenum):
         enemies_copy = self.enemies.copy()
@@ -637,14 +777,23 @@ class LevelBuilder:
                 if obj_type == "rocket":
                     if (enemies_copy[i].rectlist[0].colliderect(rocket.rect)):
                         self.killed += 1
-                        self.enemies.remove(enemies_copy[i])    #original inside: enemies_copy[i].rectlist.remove(rect)
+                        self.enemies.remove(enemies_copy[i])    # Original inside: enemies_copy[i].rectlist.remove(rect)
                         break
                 elif obj_type == "time bubble":
                     if (enemies_copy[i].rectlist[0].colliderect(rocket.rect)):
                         self.killed += 1
                         self.enemies.remove(enemies_copy[i])
                         break
-            # WILL NEED TO ADD SOME LEVEL 4 STUFF HERE IF WE DO BOMB ENEMIES
+            elif wavenum == 4:
+                for rect in self.enemies[i].bombs:
+                    if(rect.colliderect(rocket.rect)):
+                        exp_pos = Vector2()
+                        exp_pos.x = rect.x 
+                        exp_pos.y = rect.y - 20
+                        explosion = Explosion(exp_pos, 100)
+                        self.enemies[i].explosions.append(explosion)
+                        self.enemies[i].bombs.remove(rect)
+                        break
 
     def draw(self, screen):
         for i in range(len(self.refills)):
@@ -691,7 +840,7 @@ class Game:
         self.go_to_last_level()
 
     def go_to_last_level(self):
-        ([self.level1, self.level2, self.level3])[self.last_level - 1]()
+        ([self.level1, self.level2, self.level3, self.level4])[self.last_level - 1]()
 
     def level1(self):
         global is_menu
@@ -731,7 +880,6 @@ class Game:
 
             pygame.display.flip()
             self.handle_events()
-
 
             elapsed_time = time.time()
             if(elapsed_time > next_time):
@@ -830,12 +978,13 @@ class Game:
             if stuck_in_timebubble:
                 font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
                 escape_text = font.render("Press E to escape!", True, (0, 0, 0))
-                screen.blit(escape_text, (20, h - 40))
+                text_width, text_height = font.size("Press E to escape!")
+                screen.blit(escape_text, (screen_width/70, screen_height - 3*text_height/2))
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
             text = self.font.render("Goal: Kill " + str(10 - self.level_builder.killed) + " enemies", False, (0, 0, 0))
             text_width, text_height = self.font.size("Goal: Kill " + str(10 - self.level_builder.killed) + " enemies")
-            screen.blit(text, (screen_width/10 - text_width/2, 0))
+            screen.blit(text, (screen_width/70, text_height/2))
             
             pygame.display.flip()
             self.handle_events()
@@ -907,7 +1056,11 @@ class Game:
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
             text = self.font.render("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
             text_width, text_height = self.font.size("Goal: Avoid the lasers for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
-            screen.blit(text, (screen_width/10 - text_width/2, 0))
+            screen.blit(text, (screen_width/70, text_height/2))
+
+            text = self.font.render("Tip: You can fall through the bottom now!", False, (0, 0, 0))
+            text_width, text_height = self.font.size("Tip: You can fall through the bottom now!")
+            screen.blit(text, (screen_width/70, screen_height - 3*text_height/2))
             
             pygame.display.flip()
             self.handle_events()
@@ -924,6 +1077,85 @@ class Game:
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 30:
                 self.player.rocket.rocket_count += 2
                 self.last_level = 4
+                self.go_to_last_level()
+
+    def level4(self):
+        global is_menu
+        global wave_num
+        self.last_level = 4
+        wave_num = 4
+        self.menu.new_wave(wave_num)
+        self.level_builder.populate_refill()
+        self.level_builder.enemies = []
+        self.player.health = 100
+        self.player.rocket.rocket_count += 10
+        next_time = time.time()
+        elapsed_time = time.time()
+        min_time = 5
+        max_time = 10
+        enemiy_iteration = 0
+        timenow = pygame.time.get_ticks()
+        self.handle_dt()    #its here, because we want to essentially "reset" it so that, in two lines, it will ahve a valeus close to 0, makgi nthe palyer nto move, no matter how logn the user waits in menu
+        while ((not is_menu) or (wave_num == 4)):
+            self.handle_dt()
+            self.clear_screen()
+
+            self.player.rocket.render_current_ammo(screen)
+            
+            self.level_builder.draw(screen)
+            self.player.move()
+            self.player.handle_rocket()
+            self.player.health_collision_detection(self.level_builder)
+            self.player.check_state(last_level)
+            self.player.draw(self.screen)
+            
+            for rocket in self.player.rocket.rockets:
+                self.level_builder.collision_detection(rocket, "rocket", 4)
+            
+            for bullet in self.player.rocket.explosions:
+                self.level_builder.collision_detection(bullet, "rocket", 4)
+
+            self.score = self.player.get_score()
+
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
+            text = self.font.render("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
+            text_width, text_height = self.font.size("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            screen.blit(text, (screen_width/10 - text_width/2, 0))
+            
+            # Health Bar
+            max_health = 100
+            bar_width = int(screen_width * 0.15)
+            bar_height = int(screen_height * 0.02)
+            health_ratio = self.player.health / max_health
+
+            font_size = int(screen_height * 0.03)
+            font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", font_size)
+            label = font.render("Health", True, (0, 0, 0))
+            screen.blit(label, (20, screen_height - bar_height - 50))
+
+            bg_rect = pygame.Rect(20, screen_height - bar_height - 20, bar_width, bar_height)
+            fill_rect = pygame.Rect(20, screen_height - bar_height - 20, int(bar_width * health_ratio), bar_height)
+
+            pygame.draw.rect(screen, (50, 50, 50), bg_rect)
+            pygame.draw.rect(screen, (200, 0, 0), fill_rect)
+            pygame.draw.rect(screen, (0, 0, 0), bg_rect, 2)
+
+            pygame.display.flip()
+            self.handle_events()
+
+
+            elapsed_time = time.time()
+            if(elapsed_time > next_time):
+                next_time = elapsed_time + random.randint(min_time, max_time)
+                self.level_builder.spawn_enemies4()
+                enemiy_iteration += 1
+                if(enemiy_iteration > 5 and min_time > 1):
+                    min_time -= 1
+                    max_time -= 1
+                    enemiy_iteration = 0
+            if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 60:
+                self.player.rocket.rocket_count += 2
+                self.last_level = 5
                 self.go_to_last_level()
 
     def handle_events(self):
@@ -1023,7 +1255,7 @@ class Menu():
         pygame.font.init()
     
         is_wave = True
-        goals = ["Survive for 30s", "Kill 10 Enemies.", "Avoid the Lasers", "Survive for 30s", "Kill the Boss"]
+        goals = ["Survive for 30s", "Kill 10 Enemies.", "Avoid the Lasers", "Survive for 60s", "Kill the Boss"]
 
         screen.blit(self.bg_img, (0, 0))
         while is_wave:
@@ -1054,10 +1286,10 @@ global instance
 instance = None
 
 mixer.init()
-mixer.music.load("data/audio/music.mp3")
-mixer.music.set_volume(0.01)
+mixer.music.load("data/audio/music-rizzlas.mp3")
+mixer.music.set_volume(0.06)
 mixer.music.play(-1)
-last_level = 2
+last_level = 4
 
 while(True):
     if(is_menu):
