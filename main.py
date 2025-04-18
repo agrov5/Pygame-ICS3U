@@ -91,7 +91,7 @@ class Rocket():
     def __init__(self, position):
         self.position = Vector2(position)
         self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
-        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (40, 20))
+        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (60, 30))
         self.angle = 0
         self.rockets = []
         self.explosions = []
@@ -160,7 +160,7 @@ class Rocket():
 
     def refresh_sprite(self):
         self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
-        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (40, 20))
+        self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (60, 30))
         self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, -math.degrees(self.angle))
 
     def set_position(self, position):
@@ -191,8 +191,11 @@ class Player():
         self.allowy = False
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
         self.player_sprite = pygame.transform.scale(self.player_sprite, (70, 84))
-        self.elytra_sprite = pygame.image.load('data/images/Elytra.png').convert_alpha()
-        self.elytra_sprite = pygame.transform.scale(self.elytra_sprite, (100, 100))
+        self.elytra_sprite_left = pygame.image.load('data/images/Elytra.png').convert_alpha()
+        self.elytra_sprite_left = pygame.transform.scale(self.elytra_sprite_left, (45, 90))
+        self.elytra_sprite_right = pygame.transform.flip(self.elytra_sprite_left, True, False)
+        self.elytra_sprite_left = pygame.transform.rotate(self.elytra_sprite_left, -30)
+        self.elytra_sprite_right = pygame.transform.rotate(self.elytra_sprite_right, 30)
         self.rect = self.player_sprite.get_rect()
         self.rect.topleft = (self.position.x, self.position.y)
         self.rocket.set_position(self.position)
@@ -336,7 +339,8 @@ class Player():
         return self.position.y + (self.player_sprite.get_height() / 2)
 
     def draw(self, screen):
-        screen.blit(self.elytra_sprite, (self.blit_position()[0] - (self.player_sprite.get_width() / 4), self.blit_position()[1]))
+        screen.blit(self.elytra_sprite_left, (self.blit_position()[0] - (5 * self.player_sprite.get_width() / 8), self.blit_position()[1]))
+        screen.blit(self.elytra_sprite_right, (self.blit_position()[0] + (self.player_sprite.get_width() / 2), self.blit_position()[1]))
         screen.blit(self.player_sprite, self.blit_position())
         self.rocket.draw(screen)
         
@@ -400,24 +404,34 @@ class Wall:
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
-        self.rect = pygame.Rect(self.position, (60,20))
+        self.rect = pygame.Rect(self.position, (200, 25))
+        self.wall_sprite = pygame.image.load('data/images/Bricks.png').convert_alpha()
+        self.wall_sprite = pygame.transform.scale(self.wall_sprite, (200, 25))
         self.rectlist = [self.rect]    
-        self.health = 5 
+        self.health = 2
         self.wallindex = index
 
     def draw(self, screen):
         pygame.draw.rect(screen,(0,0,0),self.rect)
+        screen.blit(self.wall_sprite, self.position)
     
-    def collision_detection(self,enemies, wallist):
-        for i in range(len(enemies)):
-            for rect in enemies[i].rectlist:
-                if self.rect.colliderect(rect):
-                    self.health -= 1
-                enemies[i].rectlist.remove(rect)
-        
-        wallist = list(wallist)
-        if(self.health<=0):
-            wallist.remove(wallist[self.wallindex])
+    def collision_detection(self, enemies):
+        try:
+            for i in range(0, len(enemies)):
+                bombs = enemies[i].bombs.copy()
+                for rect in bombs:
+                    if self.rect.colliderect(rect):
+                        enemies[i].bombs.remove(rect)
+                        self.health -= 1
+                        if self.health <= 0:
+                            self.position.x = random.randint(100, screen_width - 100)
+                            self.position.y = random.randint(100, screen_height - 100)
+                            self.rect.x = self.position.x
+                            self.rect.y = self.position.y
+                            break
+            return enemies
+        except:
+            return enemies
         
 class Enemy1:
     global dt
@@ -434,47 +448,41 @@ class Enemy1:
         self.enemy_sprite = None
 
         if(rand == 0):
-            self.enemy_sprite = pygame.image.load('data/images/Shell.png').convert_alpha()
-            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 40))
+            self.enemy_sprite = pygame.image.load('data/images/Potion.png').convert_alpha()
+            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 60))
             self.xOffset = 40
-            self.yOffset = 40
+            self.yOffset = 60
         elif(rand == 1):
-            self.enemy_sprite = pygame.image.load('data/images/Fish.png').convert_alpha()
-            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-            self.xOffset = 30
-            self.yOffset = 50
+            self.enemy_sprite = pygame.image.load('data/images/Guardian.png').convert_alpha()
+            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (60, 60))
+            self.xOffset = 60
+            self.yOffset = 60
         else:
             self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
-            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-            self.xOffset = 30
-            self.yOffset = 50
+            self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 45)
+            self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (90, 90))
+            self.xOffset = 40
+            self.yOffset = 60
+
+            # Centering the sprite
+            self.position.x -= 90
+            self.position.y -= 40
         
-        self.recter = pygame.Rect(self.position,(self.xOffset,self.yOffset))
+        self.recter = pygame.Rect(self.position, (self.xOffset,self.yOffset))
         self.rectlist = [self.recter]
         self.timenow = 0 #ignore this
         
 
     def draw(self, screen):
+        #pygame.draw.rect(screen, (255, 0, 0), self.recter)
         screen.blit(self.enemy_sprite, self.position)
         self.gravity()
 
     def gravity(self):
         self.position.y += self.gravity_scale * dt
         self.gravity_scale += 1
-        self.recter = pygame.Rect(self.position,(self.xOffset,self.yOffset))
+        self.recter = pygame.Rect(self.position, (self.xOffset,self.yOffset))
         self.rectlist = [self.recter]
-    
-    def get_right(self):
-        return self.position.x + self.xOffset
-
-    def get_left(self):
-        return self.position.x - self.xOffset
-    
-    def get_top(self):
-        return self.position.y - self.yOffset
-    
-    def get_bottom(self):
-        return self.position.y + self.yOffset
 
 class Enemy2:
     global dt
@@ -483,17 +491,18 @@ class Enemy2:
         self.position.x = position.x
         self.position.y = position.y
         self.gravity_scale = 0
-        self.enemy_sprite = pygame.image.load('data/images/Fish.png').convert_alpha()
-        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-        self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 90)
-        self.xOffset = 30
+        self.enemy_sprite = pygame.image.load('data/images/Parrot.png').convert_alpha()
+        self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 180)
+        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 50))
+        self.xOffset = 40
         self.yOffset = 50
-        self.rect = pygame.Rect(self.position, (30,50))
+        self.rect = pygame.Rect(self.position, (40,50))
         self.rectlist = [self.rect]
         self.rotated_surface = self.enemy_sprite
         self.timenow = 0 #ignore this
 
     def draw(self, screen):
+        #pygame.draw.rect(screen, (255, 0, 0), self.rect)
         screen.blit(self.rotated_surface, self.position)
     
     def move(self, targetx, targety):
@@ -508,7 +517,7 @@ class Enemy2:
         self.dy = math.sin(angle) * 2
         self.position.x += self.dx * 0.4
         self.position.y += self.dy * 0.4
-        self.rect = pygame.Rect(self.position, (30,50))
+        self.rect = pygame.Rect(self.position, (40,50))
         self.rectlist = [self.rect]
     
     def gravity(self):
@@ -525,38 +534,39 @@ class Enemy3:
         self.laserect_pos = Vector2()
         self.gravity_scale = 0
         self.direction = direction 
-        self.enemy_sprite = pygame.image.load('data/images/Shell.png').convert_alpha()
-        self.enemy_sprite_size = (40, 40)
+        self.enemy_sprite = pygame.image.load('data/images/Pickaxe.png').convert_alpha()
+        self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 45)
+        self.enemy_sprite_size = (80, 80)
+        self.xOffset = 80
+        self.yOffset = 80
         self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
         self.enemy_sprite1 = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
 
         if self.direction == "y-axis":
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 90)
-            self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite, 180)
+            self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite1, 270)
             self.position1.y = position.y
             self.laserect = pygame.Surface((screen_width, 10))
             self.laserect_pos.x = self.position.x + self.enemy_sprite_size[0]
             self.laserect_pos.y = self.position.y + 1*self.enemy_sprite_size[1]//4
             if self.position.x == 0:
-                self.position1.x = position.x + screen_width - self.enemy_sprite_size[0]
-            self.rect2 = pygame.Rect(self.laserect_pos,(screen_width, self.enemy_sprite_size[1]//2))
+                self.position1.x = position.x + screen_width - 1*self.enemy_sprite_size[0]//4
+            self.rect2 = pygame.Rect(self.laserect_pos,(screen_width - 2*self.enemy_sprite_size[0], self.enemy_sprite_size[1]))
         elif self.direction == "x-axis":
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 0)
-            self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite, 180)
+            self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite1, 180)
             self.position1.x = position.x
             self.laserect = pygame.Surface((10, screen_height))
             self.laserect_pos.x = self.position.x + 1*self.enemy_sprite_size[0]//4
             self.laserect_pos.y = self.position.y + self.enemy_sprite_size[1]
             if self.position.y == 0:
-                self.position1.y = position.y + screen_height - self.enemy_sprite_size[1]
-            self.rect2 = pygame.Rect(self.laserect_pos,(self.enemy_sprite_size[0]//2, screen_height))
+                self.position1.y = position.y + screen_height - 1*self.enemy_sprite_size[1]//2
+            self.rect2 = pygame.Rect(self.laserect_pos, (self.enemy_sprite_size[0], screen_height - 20*self.enemy_sprite_size[1]))
 
         self.rect = pygame.Rect(self.position, self.enemy_sprite_size)
         self.rect1 = pygame.Rect(self.position1, self.enemy_sprite_size)
         self.rectlist = [self.rect,self.rect1,self.rect2]
-        self.laserect.fill((255, 0, 0))
-        self.xOffset = 40
-        self.yOffset = 40
+        self.laserect.fill((0, 153, 153))
         self.count = 0
         self.traveled_distance = 0
         self.first_spawn = True
@@ -564,16 +574,16 @@ class Enemy3:
 
     def draw(self, screen):
         if self.first_spawn:
+            screen.blit(self.laserect, self.laserect_pos)
             screen.blit(self.enemy_sprite, self.position)
+            screen.blit(self.enemy_sprite1, self.position1)
             sound = mixer.Sound("data/audio/laser-charge.mp3")
             sound.set_volume(0.1)
             sound.play()
-            screen.blit(self.laserect, self.laserect_pos)
-            screen.blit(self.enemy_sprite1, self.position1)
             self.first_spawn = False
         else:
-            screen.blit(self.enemy_sprite, self.position)
             screen.blit(self.laserect, self.laserect_pos)
+            screen.blit(self.enemy_sprite, self.position)
             screen.blit(self.enemy_sprite1, self.position1)
     
     def move(self):
@@ -591,7 +601,8 @@ class Enemy3:
             self.traveled_distance += self.speed
             self.laserect_pos.x = self.position.x + self.enemy_sprite_size[0]
             self.laserect_pos.y = self.position.y + 1*self.enemy_sprite_size[1]//4
-            self.rect2 = pygame.Rect(self.laserect_pos, (screen_width, self.enemy_sprite_size[1]//2))
+            self.rect2.x = self.laserect_pos.x
+            self.rect2.y = self.laserect_pos.y
         elif self.direction == "x-axis":
             if self.position.x <= 100:
                 self.count = 0
@@ -606,11 +617,13 @@ class Enemy3:
             self.traveled_distance += self.speed
             self.laserect_pos.x = self.position.x + 1*self.enemy_sprite_size[0]//4
             self.laserect_pos.y = self.position.y + self.enemy_sprite_size[1]
-            self.rect2 = pygame.Rect(self.laserect_pos,(self.enemy_sprite_size[0]//2, screen_height))
+            self.rect2.x = self.laserect_pos.x
+            self.rect2.y = self.laserect_pos.y
 
-        self.rect = pygame.Rect(self.position, self.enemy_sprite_size)
-        self.rect1 = pygame.Rect(self.position1, self.enemy_sprite_size)
-        self.rectlist = [self.rect,self.rect1,self.rect2]
+        self.rect.x = self.position.x
+        self.rect.y = self.position.y
+        self.rect1.x = self.position1.x
+        self.rect1.y = self.position1.y
     
     def gravity(self):
         self.position.y += 0
@@ -622,15 +635,15 @@ class Enemy4:
         self.position.x = position.x
         self.position.y = position.y
         self.gravity_scale = 0
-        self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
-        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-        self.bomb_img = pygame.transform.scale(pygame.image.load('data/images/Grenade.png').convert_alpha(), (30, 50))
-        self.rect = pygame.Rect(self.position,(30,50))
+        self.enemy_sprite = pygame.image.load('data/images/Creeper.png').convert_alpha()
+        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (50, 70))
+        self.bomb_img = pygame.transform.scale(pygame.image.load('data/images/Egg.png').convert_alpha(), (50, 50))
+        self.rect = pygame.Rect(self.position,(50,70))
         self.speed = random.randrange(1, 4)
         self.interval = random.randrange(1,10)
         self.rectlist = [self.rect]
-        self.xOffset = 30
-        self.yOffset = 50
+        self.xOffset = 50
+        self.yOffset = 70
         self.bombs = []
         self.explosions = []
         self.count = 0
@@ -662,7 +675,8 @@ class Enemy4:
             self.position.x += self.speed
         elif self.count == 1:
             self.position.x -= self.speed
-        self.rect = pygame.Rect(self.position,(30, 50))
+        self.rect.x = self.position.x
+        self.rect.y = self.position.y
         self.rectlist = [self.rect]
         self.drop_bombs()
     
@@ -1089,6 +1103,11 @@ class Game:
         self.level_builder.enemies = []
         self.player.health = 100
         self.player.rocket.rocket_count += 10
+        wallist = []
+        for i in range(0,3):
+            position = Vector2()
+            position.xy = random.randint(100, screen_width - 100), random.randint(100, screen_height - 100)
+            wallist.append(Wall(position,i))
         next_time = time.time()
         elapsed_time = time.time()
         min_time = 5
@@ -1114,13 +1133,24 @@ class Game:
             
             for bullet in self.player.rocket.explosions:
                 self.level_builder.collision_detection(bullet, "rocket", 4)
+            
+            if self.level_builder.enemies:
+                for i in range(0, len(wallist)):
+                    wallist[i].draw(screen)    
+                    out = wallist[i].collision_detection(self.level_builder.enemies)
+                    if out:
+                        self.level_builder.enemies = out
 
             self.score = self.player.get_score()
 
             self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
-            text = self.font.render("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
-            text_width, text_height = self.font.size("Goal: Survive for " + str(60 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
+            text = self.font.render("Goal: Survive for " + str(45 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds", False, (0, 0, 0))
+            text_width, text_height = self.font.size("Goal: Survive for " + str(45 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
             screen.blit(text, (screen_width/10 - text_width/2, 0))
+
+            text = self.font.render("Tip: Hide under a wall! Players can pass through them, but the mobs can't!", False, (0, 0, 0))
+            text_width, text_height = self.font.size("Tip: Hide under a wall! Players can pass through them, but the mobs can't!")
+            screen.blit(text, (screen_width - text_width - 20, screen_height - 3*text_height/2))
             
             # Health Bar
             max_health = 100
@@ -1255,7 +1285,7 @@ class Menu():
         pygame.font.init()
     
         is_wave = True
-        goals = ["Survive for 30s", "Kill 10 Enemies.", "Avoid the Lasers", "Survive for 60s", "Kill the Boss"]
+        goals = ["Survive for 30s", "Kill 10 Enemies.", "Avoid the Lasers", "Survive for 45s", "Kill the Boss"]
 
         screen.blit(self.bg_img, (0, 0))
         while is_wave:
