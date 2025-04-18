@@ -1367,6 +1367,10 @@ class Game:
             text_width, text_height = self.font.size("Goal: Survive for " + str(30 - abs(int((pygame.time.get_ticks() - timenow)/1000))) + " seconds")
             screen.blit(text, (screen_width/10 - text_width/2, 0))
 
+            # Tip text
+            text = self.font.render("Note: Don't fall out of the screen!", False, (0, 0, 0))
+            screen.blit(text, (screen_width/70, screen_height - 40))
+
             pygame.display.flip()   # update screen
             self.handle_events()
 
@@ -1526,7 +1530,7 @@ class Game:
             
             # If player has killed 10 enemies, then go to next level
             if self.level_builder.killed >= 10:
-                self.player.rocket.rocket_count += 2
+                self.player.rocket.rocket_count += 5
                 self.last_level = 3
                 self.go_to_last_level()
 
@@ -1618,7 +1622,7 @@ class Game:
 
             # If player has survived for 30 seconds, then go to next level
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 30:
-                self.player.rocket.rocket_count += 2
+                self.player.rocket.rocket_count += 5
                 self.last_level = 4
                 self.go_to_last_level()
 
@@ -1649,6 +1653,7 @@ class Game:
 
         # Make 2 wall objects with random positions
         wallist = []
+        wallist.clear()   # just to be safe
         for i in range(0, 2):
             position = Vector2()
             position.xy = random.randint(100, screen_width - 100), random.randint(100, screen_height - 100)
@@ -1736,7 +1741,7 @@ class Game:
 
             # If player has survived for 60 seconds, move to next level
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 60:
-                self.player.rocket.rocket_count += 2
+                self.player.rocket.rocket_count += 5
                 self.last_level = 5
                 self.go_to_last_level()
 
@@ -1985,7 +1990,7 @@ mixer.music.play(-1)
 global instance
 instance = None
 is_menu = True
-last_level = 4   # Start from the first level
+last_level = 1   # Start from the first level
 
 # Main control loop
 while(True):
