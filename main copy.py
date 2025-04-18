@@ -703,34 +703,6 @@ class Enemy4:
                 self.rectlist.append(pygame.Rect(exp_pos.x, exp_pos.y, 100, 100))
                 self.bombs.remove(bomb)
 
-class Boss: 
-    def __init__(self, position):
-        self.position = Vector2()
-        self.position.x = position.x
-        self.position.y = position.y
-        
-        self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
-        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-    
-        self.rect = pygame.Rect(self.position,(30,50))
-        self.speed = random.randrange(1, 4)
-        
-       
-        self.timenow = pygame.time.get_ticks()
-
-    def move(self):
-        pass
-    
-    def draw(self):
-        pass
-    
-    def split_boss(self):
-        pass
-    
-    def draw_health_bar(self):
-        pass
-    
-    
 class LevelBuilder:
     def __init__(self):
         self.refills = []
@@ -1347,7 +1319,7 @@ mixer.init()
 mixer.music.load("data/audio/music-rizzlas.mp3")
 mixer.music.set_volume(0.06)
 mixer.music.play(-1)
-last_level = 1
+last_level = 4
 
 while(True):
     if(is_menu):
