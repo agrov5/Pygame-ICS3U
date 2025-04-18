@@ -253,6 +253,28 @@ class RocketBullet:
         return self.distance_traveled >= self.max_distance
 
 class Rocket():
+    """
+    A rocket that manages its fired projectiles, handles explosions, and tracks ammo.
+
+    Inputs:
+        position (Vector2): The starting position of the rocket.
+
+    Attributes:
+        rocket_sprite (pygame.Surface): The rocket image.
+        rockets (list): Collection of active rocket bullets.
+        explosions (list): Collection of rocket-bullet explosions.
+        rocket_count (int): Number of available rockets for shooting.
+
+    Methods:
+        render_current_ammo(screen): Displays current rocket ammo count.
+        shoot(): Fires a rocket bullet if ammo is available.
+        update(screen): Updates rocket bullets and explosions.
+        explode(position): Creates explosion bullets around a given position.
+        draw(screen): Renders the rocket sprite and its bullets on screen.
+        
+    Made By: Akshit and Aryan
+    """
+    
     def __init__(self, position):
         self.position = Vector2(position)
         self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
@@ -270,20 +292,20 @@ class Rocket():
 
     def render_current_ammo(self, screen):
         text = self.font.render(str(self.rocket_count), False, (200,200,200))
-        text_width, text_height = self.font.size(str(self.rocket_count))
+        text_width, text_height = self.font.size(str(self.rocket_count)) # Center rocket ammo
         screen.blit(text, (screen_width/2-text_width/2,screen_height/2-text_height/2))
     
     def shoot(self):
         if self.rocket_count > 0:
             sound = mixer.Sound("data/audio/Firework.mp3")
-            sound.set_volume(0.2)
+            sound.set_volume(0.2) # Play the rocket shooting sound
             sound.play()
             
             mouse_x, mouse_y = pygame.mouse.get_pos()
             angle = math.atan2(mouse_y - self.position.y, mouse_x - self.position.x)
-            rocket = RocketBullet(self.position, angle, speed=5)
+            rocket = RocketBullet(self.position, angle, speed=5) # Shoot where the mouse pointer is 
             self.rockets.append(rocket)
-            self.rocket_count -= 1
+            self.rocket_count -= 1 # Subtract one ammo from the total
         else:
             sound = mixer.Sound("data/audio/CantShoot.wav")
             sound.set_volume(0.08)
@@ -292,7 +314,7 @@ class Rocket():
     def update(self, screen):
         new_rockets = []
         for rocket in self.rockets:
-            if rocket.has_exploded():
+            if rocket.has_exploded(): # Set the state of the rocket instance
                 self.explode(rocket.position)
             else:
                 rocket.move()
@@ -308,7 +330,7 @@ class Rocket():
                 new_explosions.append(bullet)
         self.explosions = new_explosions
     
-    def explode(self, position):
+    def explode(self, position): # Show the state visually of the rocket instantce 
         explosion_sound = mixer.Sound("data/audio/Explosion.mp3")
         explosion_sound.set_volume(0.01)
         explosion_sound.play()
@@ -339,6 +361,29 @@ class Rocket():
         return self.position.x - (self.rocket_sprite.get_width() / 2), self.position.y + (self.rocket_sprite.get_height() / 2)
 
 class Player():
+    """
+    Class for the player's character, handling movement, physics, collisions, and rocket mechanics.
+
+    Attributes:
+        is_dead (bool): Indicates whether the player is alive.
+        score (int): Tracks the player's current score.
+        health (int): The player's health points.
+        position (pygame.Vector2): The player's position in the game world.
+        velocity (pygame.Vector2): The player's movement velocity.
+        rocket (Rocket): Manages the player's rocket usage.
+
+    Methods:
+        move(): Updates player position using velocity, gravity, and drag.
+        handle_rocket(): Orients the rocket based on mouse input and prepares for shooting.
+        collision_detection(level_builder): Checks collisions between the player and enemies or refill items.
+        health_collision_detection(level_builder): Handles collisions that reduce the player's health.
+        shoot(): Fires a rocket if available and applies upward force to the player.
+        add_force(vector, magnitude): Changes the player's velocity based on a force vector.
+        draw(screen): Renders the player and accessory sprites (e.g., elytra) on the display.
+
+    Made by: Akshit and Aryan
+    """
+   
     global dt
     def __init__(self):
         self.is_dead = False
@@ -394,7 +439,7 @@ class Player():
             self.offset.y = rel_y if rel_y > -4 else -4
 
     def gravity(self):
-        self.velocity.y -= self.gravity_scale * dt
+        self.velocity.y -= self.gravity_scale * dt 
 
     def air_resistance(self):
         if(self.velocity.y > 0):
@@ -491,6 +536,7 @@ class Player():
         if self.health<=0:
             self.is_dead = True
     
+    # Get coordinates of bouding boxes
     def get_right(self):
         return self.position.x + (self.player_sprite.get_width() / 2)
 
@@ -503,6 +549,7 @@ class Player():
     def get_bottom(self):
         return self.position.y + (self.player_sprite.get_height() / 2)
 
+    # Draw the player and it's elytra 
     def draw(self, screen):
         screen.blit(self.elytra_sprite_left, (self.blit_position()[0] - (5 * self.player_sprite.get_width() / 8), self.blit_position()[1]))
         screen.blit(self.elytra_sprite_right, (self.blit_position()[0] + (self.player_sprite.get_width() / 2), self.blit_position()[1]))
@@ -725,6 +772,23 @@ class Wall:
             return enemies
         
 class Enemy1:
+    """
+    Class for Enemy1, a basic falling enemy unit.
+
+    Inputs:
+        position (Vector2): The initial position from which the enemy spawns.
+
+    Attributes:
+        gravity_scale (int): Determines how fast the enemy falls.
+        xOffset (int): The horizontal size offset for the enemy sprite.
+        yOffset (int): The vertical size offset for the enemy sprite.
+
+    Methods:
+        adjust_speed(factor): Changes the enemy's fall speed for variety.
+
+    Made by: Akshit and Aryan
+    """
+    
     global dt
     def __init__(self, position):
         self.position = Vector2()
@@ -738,6 +802,7 @@ class Enemy1:
         rand = random.randint(0, 2)
         self.enemy_sprite = None
 
+        # Which enemy to spawn
         if(rand == 0):
             self.enemy_sprite = pygame.image.load('data/images/Potion.png').convert_alpha()
             self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 60))
@@ -775,7 +840,25 @@ class Enemy1:
         self.recter = pygame.Rect(self.position, (self.xOffset,self.yOffset))
         self.rectlist = [self.recter]
 
-class Enemy2:
+class Enemy2: 
+    """
+    Class for Enemy2, a flying adversary that orients itself toward the player's position.
+
+    Inputs:
+        position (pygame.Vector2): The initial position for this enemy.
+
+    Attributes:
+        enemy_sprite (pygame.Surface): Image representing this enemy.
+        rect (pygame.Rect): Collision box for this enemy.
+
+    Methods:
+        draw(screen): Renders the enemy on the given screen.
+        move(targetx, targety): Moves the enemy towards the target.
+        gravity(): Applies gravity if needed.
+
+    Made by: Akshit and Aryan
+    """
+    
     global dt
     def __init__(self, position):
         self.position = Vector2()
@@ -814,7 +897,20 @@ class Enemy2:
     def gravity(self):
         self.position.y += self.gravity_scale * dt
 
-class Enemy3:
+class Enemy3: 
+    """
+    A specialized enemy class that represents a laser-based adversary
+    moving along a designated axis. The enemy emits a continuous laser
+    that poses a hazard to the player.
+    
+    Method: __init__
+        Initializes this laser enemy with a starting position and movement axis.
+
+        Args:
+            position (Vector2): The starting coordinates of the enemy.
+            direction (str): The axis along which the enemy moves ("x-axis" or "y-axis").
+    """
+    
     global dt
     def __init__(self, position, direction):
         self.position = Vector2()
@@ -877,7 +973,7 @@ class Enemy3:
             screen.blit(self.enemy_sprite, self.position)
             screen.blit(self.enemy_sprite1, self.position1)
     
-    def move(self):
+    def move(self): # Move the enemy based on it's direction and the laser movement. 
         if self.direction == "y-axis":
             if self.position.y <= 100:
                 self.count = 0
@@ -994,33 +1090,6 @@ class Enemy4:
                 self.rectlist.append(pygame.Rect(exp_pos.x, exp_pos.y, 100, 100))
                 self.bombs.remove(bomb)
 
-class Boss: 
-    def __init__(self, position):
-        self.position = Vector2()
-        self.position.x = position.x
-        self.position.y = position.y
-        
-        self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
-        self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (30, 50))
-    
-        self.rect = pygame.Rect(self.position,(30,50))
-        self.speed = random.randrange(1, 4)
-        
-       
-        self.timenow = pygame.time.get_ticks()
-
-    def move(self):
-        pass
-    
-    def draw(self):
-        pass
-    
-    def split_boss(self):
-        pass
-    
-    def draw_health_bar(self):
-        pass
-    
 class LevelBuilder:
     def __init__(self):
         """
