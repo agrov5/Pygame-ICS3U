@@ -91,13 +91,10 @@ class Explosion:
 
 class TimeBubble(pygame.sprite.Sprite):
     """
-    A circular field that stops player movement and freezes them when entered.
+    A circular field that stops player movement and freezes them when entered. Also, protects player from enemies like a shield.
 
-    Attributes:
-        position (Vector2): Center of the time bubble.
-        width (int): Radius of the bubble.
-        rect (pygame.Rect): Used for collision.
-        allow (bool): Whether the bubble is still active.
+    Input:
+        position (Vector2): The center point of the bubble.
 
     Made by: Akshit and Aryan
     """
@@ -259,69 +256,109 @@ class Rocket():
     Inputs:
         position (Vector2): The starting position of the rocket.
 
-    Attributes:
-        rocket_sprite (pygame.Surface): The rocket image.
-        rockets (list): Collection of active rocket bullets.
-        explosions (list): Collection of rocket-bullet explosions.
-        rocket_count (int): Number of available rockets for shooting.
-
-    Methods:
-        render_current_ammo(screen): Displays current rocket ammo count.
-        shoot(): Fires a rocket bullet if ammo is available.
-        update(screen): Updates rocket bullets and explosions.
-        explode(position): Creates explosion bullets around a given position.
-        draw(screen): Renders the rocket sprite and its bullets on screen.
-        
     Made By: Akshit and Aryan
     """
     
     def __init__(self, position):
+        """
+        Initializes a Rocket object at the given position.
+
+        Inputs:
+            position (Vector2): The initial location of the rocket.
+        
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
         self.position = Vector2(position)
         self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
         self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (60, 30))
+
+        # Set default values
         self.angle = 0
-        self.rockets = []
-        self.explosions = []
+        self.rockets = []       
+        self.explosions = []   
         self.is_flipped = False
-        self.rocket_count = 15
-        self.num_bullets = 5
+        self.rocket_count = 15  # Initial rockets
+        self.num_bullets = 5   
+
+        # Load font for showing rocket ammo count
         pygame.font.init()
         self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 300)
+
         self.refresh_sprite()
-        mixer.init()
+
+        mixer.init()   # setup sounds
 
     def render_current_ammo(self, screen):
-        text = self.font.render(str(self.rocket_count), False, (200,200,200))
-        text_width, text_height = self.font.size(str(self.rocket_count)) # Center rocket ammo
-        screen.blit(text, (screen_width/2-text_width/2,screen_height/2-text_height/2))
-    
+        """
+        Displays the current ammo count at the center of the screen.
+
+        Inputs:
+            screen (Surface): The game screen where ammo is displayed.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
+        text = self.font.render(str(self.rocket_count), False, (200, 200, 200))
+        text_width, text_height = self.font.size(str(self.rocket_count))
+        screen.blit(text, (screen_width / 2 - text_width / 2, screen_height / 2 - text_height / 2))    # Center the text
+
     def shoot(self):
+        """
+        Shoots a rocket toward the current mouse position if ammo is available.
+
+        Inputs:
+            None
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
         if self.rocket_count > 0:
+            # Play shoot sound
             sound = mixer.Sound("data/audio/Firework.mp3")
-            sound.set_volume(0.2) # Play the rocket shooting sound
+            sound.set_volume(0.2)
             sound.play()
             
+            # Get mouse position and shoot in that direction
             mouse_x, mouse_y = pygame.mouse.get_pos()
             angle = math.atan2(mouse_y - self.position.y, mouse_x - self.position.x)
-            rocket = RocketBullet(self.position, angle, speed=5) # Shoot where the mouse pointer is 
+            rocket = RocketBullet(self.position, angle, speed=5)
             self.rockets.append(rocket)
-            self.rocket_count -= 1 # Subtract one ammo from the total
+            self.rocket_count -= 1   # Decrease ammo count
         else:
-            sound = mixer.Sound("data/audio/CantShoot.wav")
+            sound = mixer.Sound("data/audio/CantShoot.wav")   # out of ammo sound
             sound.set_volume(0.08)
             sound.play()
-    
+
     def update(self, screen):
+        """
+        Updates and draws all current rockets and explosions.
+
+        Inputs:
+            screen (Surface): The screen to draw the rockets and bullets on.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
         new_rockets = []
         for rocket in self.rockets:
-            if rocket.has_exploded(): # Set the state of the rocket instance
-                self.explode(rocket.position)
+            if rocket.has_exploded():
+                self.explode(rocket.position)   # Replace exploded rocket with new bullets
             else:
                 rocket.move()
                 rocket.draw(screen)
                 new_rockets.append(rocket)
         self.rockets = new_rockets
-        
+
+        # Update explosion bullets
         new_explosions = []
         for bullet in self.explosions:
             bullet.move()
@@ -329,106 +366,214 @@ class Rocket():
             if not bullet.has_exploded():
                 new_explosions.append(bullet)
         self.explosions = new_explosions
-    
-    def explode(self, position): # Show the state visually of the rocket instantce 
+
+    def explode(self, position):
+        """
+        Creates an explosion at a given position by firing bullets in all directions.
+
+        Inputs:
+            position (Vector2): Where the explosion should occur.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
+        # Play explosion sound
         explosion_sound = mixer.Sound("data/audio/Explosion.mp3")
         explosion_sound.set_volume(0.01)
         explosion_sound.play()
-        
-        for i in range(self.num_bullets):  
-            angle = i * (2*math.pi/self.num_bullets)
+
+        # Shoot bullets in circular/pentagon pattern
+        for i in range(self.num_bullets):
+            angle = i * (2 * math.pi / self.num_bullets)
             bullet = RocketBullet(position, angle, speed=5)
             self.explosions.append(bullet)
-    
+
     def draw(self, screen):
-        rotated_sprite = pygame.transform.rotate(self.rocket_sprite, -math.degrees(self.angle))
-        screen.blit(rotated_sprite, (self.position.x - rotated_sprite.get_width() / 2, self.position.y - rotated_sprite.get_height() / 2))
+        """
+        Draws the rocket on the screen, applying rotation, and updates its state.
+
+        Inputs:
+            screen (Surface): The game screen to draw on.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
+        rotated_sprite = pygame.transform.rotate(self.rocket_sprite, -math.degrees(self.angle))   # Rotate the sprite so it faces the mouse
+        screen.blit(rotated_sprite, (self.position.x - rotated_sprite.get_width() / 2,
+                                     self.position.y - rotated_sprite.get_height() / 2))     # Center the sprite
         self.update(screen)
 
     def refresh_sprite(self):
+        """
+        Reloads and re-applies transformations to the rocket sprite.
+
+        Inputs:
+            None
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
+        # Reload the sprite because it is "morphed" when rotated
         self.rocket_sprite = pygame.image.load('data/images/Rocket.png').convert_alpha()
         self.rocket_sprite = pygame.transform.scale(self.rocket_sprite, (60, 30))
         self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, -math.degrees(self.angle))
 
     def set_position(self, position):
+        """
+        Sets the rocket's current position.
+
+        Inputs:
+            position (Vector2): The new position to set.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
         self.position = position
-    
+
     def set_rotation(self, degrees):
+        """
+        Sets the rotation of the rocket sprite manually.
+
+        Inputs:
+            degrees (float): Rotation in degrees.
+
+        Outputs:
+            None
+
+        Made By: Akshit and Aryan
+        """
         self.refresh_sprite()
         self.rocket_sprite = pygame.transform.rotate(self.rocket_sprite, degrees)
-          
+
     def blit_position(self):
-        return self.position.x - (self.rocket_sprite.get_width() / 2), self.position.y + (self.rocket_sprite.get_height() / 2)
+        """
+        Calculates the top-left corner for blitting the rocket sprite.
+
+        Inputs:
+            None
+
+        Outputs:
+            tuple: (x, y) position to blit the rocket sprite.
+
+        Made By: Akshit and Aryan
+        """
+        return self.position.x - (self.rocket_sprite.get_width() / 2), \
+               self.position.y + (self.rocket_sprite.get_height() / 2)
 
 class Player():
     """
-    Class for the player's character, handling movement, physics, collisions, and rocket mechanics.
-
-    Attributes:
-        is_dead (bool): Indicates whether the player is alive.
-        score (int): Tracks the player's current score.
-        health (int): The player's health points.
-        position (pygame.Vector2): The player's position in the game world.
-        velocity (pygame.Vector2): The player's movement velocity.
-        rocket (Rocket): Manages the player's rocket usage.
-
-    Methods:
-        move(): Updates player position using velocity, gravity, and drag.
-        handle_rocket(): Orients the rocket based on mouse input and prepares for shooting.
-        collision_detection(level_builder): Checks collisions between the player and enemies or refill items.
-        health_collision_detection(level_builder): Handles collisions that reduce the player's health.
-        shoot(): Fires a rocket if available and applies upward force to the player.
-        add_force(vector, magnitude): Changes the player's velocity based on a force vector.
-        draw(screen): Renders the player and accessory sprites (e.g., elytra) on the display.
+    Player class representing the main character controlled by the user. Handles player movement, rocket control, collision detection, and rendering. Player has health, can shoot rockets, and interacts with game elements.
+    
+    Inputs:
+        None
 
     Made by: Akshit and Aryan
     """
-   
+    
     global dt
     def __init__(self):
+        """
+        Initialize the player with default position, sprites, and game attributes.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Set up default values
         self.is_dead = False
         self.score = 0
         self.health = 100
         self.position = pygame.Vector2()
         w, h = screen_width, screen_height
-        self.position.xy = w / 2, h / 5
+        self.position.xy = w / 2, h / 5  # Start in top center of screen
         self.velocity = pygame.Vector2()
         self.rotation = pygame.Vector2()
         self.offset = pygame.Vector2()
         self.rocket = Rocket(self.position)
         self.drag = 100
         self.gravity_scale = 250
-        self.allowy = False
+        self.allowy = False  # Flag to control vertical wrapping
+        
+        # Load player sprite - our heroic burger cat!
         self.player_sprite = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
         self.player_sprite = pygame.transform.scale(self.player_sprite, (70, 84))
+        
+        # Load and configure elytra (wing) sprites
         self.elytra_sprite_left = pygame.image.load('data/images/Elytra.png').convert_alpha()
         self.elytra_sprite_left = pygame.transform.scale(self.elytra_sprite_left, (45, 90))
         self.elytra_sprite_right = pygame.transform.flip(self.elytra_sprite_left, True, False)
         self.elytra_sprite_left = pygame.transform.rotate(self.elytra_sprite_left, -30)
         self.elytra_sprite_right = pygame.transform.rotate(self.elytra_sprite_right, 30)
+        
+        # Set up collision rectangle
         self.rect = self.player_sprite.get_rect()
         self.rect.topleft = (self.position.x, self.position.y)
         self.rocket.set_position(self.position)
         
+        # Arrow indicator for when player goes off-screen vertically
         self.arrow_img = pygame.image.load('data/images/Arrow.png').convert_alpha()
         self.arrow_img = pygame.transform.scale(self.arrow_img, (40, 40))
 
     def move(self):
+        """
+        Update player position based on physics, forces and screen boundaries.
+        
+        Applies gravity, air resistance, and handles screen wrapping.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         self.gravity()
         self.air_resistance()
         self.wall_detection()
+        
+        # Apply velocity to position
         self.position.x -= self.velocity.x * dt
         self.position.y -= self.velocity.y * dt
-        self.rect = pygame.Rect(self.position.x,self.position.y, 50,60)
-    
+        
+        # Update collision rectangle
+        self.rect = pygame.Rect(self.position.x, self.position.y, 50, 60)
     
     def handle_rocket(self):
+        """
+        Update rocket position and rotation based on mouse position.
+        
+        Positions rocket at player location and rotates to face mouse cursor.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         self.rocket.set_position(self.position)
+        
+        # Get mouse position and calculate angle to player
         mouse_x, mouse_y = pygame.mouse.get_pos()
         rel_x, rel_y = mouse_x - self.position.x, mouse_y - self.position.y
         angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
         self.rocket.set_rotation(angle)
 
+        # Limit offset values for smoother aiming
         if(self.offset.x > 0):
             self.offset.x = rel_x if rel_x < 4 else 4
         else:
@@ -439,21 +584,64 @@ class Player():
             self.offset.y = rel_y if rel_y > -4 else -4
 
     def gravity(self):
+        """
+        Apply gravitational force to the player, pulling them downward.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         self.velocity.y -= self.gravity_scale * dt 
 
     def air_resistance(self):
+        """
+        Apply air resistance to gradually slow the player's movement.
+        
+        Reduces velocity on both axes to simulate air drag.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Vertical air resistance
         if(self.velocity.y > 0):
             self.velocity.y -= self.drag * dt
+            
+        # Horizontal air resistance (slightly less than vertical)
         if(self.velocity.x > 0):
             self.velocity.x -= (self.drag - 50) * dt
         else:
             self.velocity.x += (self.drag - 50) * dt
 
     def wall_detection(self):
+        """
+        Handle screen boundaries by wrapping player position when crossing edges.
+        
+        Horizontal wrapping is always enabled; vertical wrapping depends on self.allowy.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Horizontal screen wrapping (always enabled)
         if(self.position.x < 0):
             self.position.x = screen_width
         if(self.position.x > screen_width):
             self.position.x = 0
+            
+        # Vertical screen wrapping (only if allowy is True)
         if self.allowy == True:
             if(self.position.y < 0):
                 self.position.y = screen_height-30
@@ -461,11 +649,36 @@ class Player():
                 self.position.y = 0
 
     def get_score(self):
+        """
+        Return the player's current score.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            int: The player's score
+            
+        Made by: Akshit and Aryan
+        """
         return self.score
 
     def check_state(self, last_level):
+        """
+        Check if player is dead and handle game over sequence.
+        
+        Updates highscore file if needed and shows menu screen.
+        
+        Inputs:
+            last_level (int): The level number player reached
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         global is_menu
         if(self.is_dead == True):
+            # Update highscore if current score is higher
             old_highscore_value = open("data/scores/highscore.csv", "r").readline()
             try:
                 if(self.score > int(old_highscore_value)):
@@ -474,29 +687,63 @@ class Player():
                     highscore_value.close()
             except:
                 pass
+                
+            # Return to menu screen
             is_menu = True
             Menu(screen, last_level)
 
     def collision_detection(self, level_builder):
+        """
+        Check collisions with refills and enemies, with instant death on enemy contact.
+        
+        Used in standard game mode where any enemy contact is fatal.
+        
+        Inputs:
+            level_builder (LevelBuilder): Reference to the current level object
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Check collisions with refill items
         for i in range(len(level_builder.refills)):
             other = level_builder.refills[i]
             if(self.get_left() < other.get_right() and self.get_right() > other.get_left() and self.get_top() < other.get_bottom() and self.get_bottom() > other.get_top()):
+                # Collect refill and increase score
                 self.rocket.rocket_count += 1
                 level_builder.populate_refill()
                 self.score += 1
         
         self.curr_level = 0
 
+        # Check collisions with enemies - instant death mode
         for i in range(len(level_builder.enemies)):
             other = level_builder.enemies[i]
             for rect in level_builder.enemies[i].rectlist:
                 if self.rect.colliderect(rect):
                     self.is_dead = True
+                    
+        # Check if player fell off bottom of screen (when vertical wrapping is disabled)
         if self.allowy == False:
             if(self.position.y > screen_height-10):
                 self.is_dead = True
     
     def health_collision_detection(self, level_builder):
+        """
+        Check collisions with health-based gameplay, where enemy hits reduce health.
+        
+        Used in alternate game mode where player has health bar instead of instant death.
+        
+        Inputs:
+            level_builder (LevelBuilder): Reference to the current level object
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Check collisions with refill items
         for i in range(len(level_builder.refills)):
             other = level_builder.refills[i]
             if(self.get_left() < other.get_right() and self.get_right() > other.get_left() and self.get_top() < other.get_bottom() and self.get_bottom() > other.get_top()):
@@ -504,13 +751,17 @@ class Player():
                 level_builder.populate_refill()
                 self.score += 1
 
+        # Check collisions with enemies - health reduction mode
         for i in range(len(level_builder.enemies)):
             other = level_builder.enemies[i]
             for rect in level_builder.enemies[i].rectlist:
                 if self.rect.colliderect(rect):
                     self.health -= 10
+                    
+            # Check collisions with enemy bombs
             for rect in level_builder.enemies[i].bombs:
                 if(self.rect.colliderect(rect)):
+                    # Reduce health and create explosion
                     self.health -= 10
                     exp_pos = Vector2()
                     exp_pos.x = rect.x 
@@ -519,6 +770,7 @@ class Player():
                     level_builder.enemies[i].explosions.append(explosion)
                     level_builder.enemies[i].bombs.remove(rect)
 
+                    # Apply knockback force from explosion
                     rel_x, rel_y = exp_pos.x - self.position.x, exp_pos.y - self.position.y
                     vector = Vector2()
                     vector.xy = rel_x, rel_y
@@ -528,61 +780,175 @@ class Player():
                     self.velocity.x = 0
                     self.add_force(vector, 400)
                     break
+                    
+        # Handle falling off screen in non-wrapping mode
         if self.allowy == False:
             if self.position.y > screen_height:
+                # Reset position and reduce health instead of instant death
                 w, h = pygame.display.get_surface().get_size()
                 self.position.xy = w / 2, h / 5
                 self.health -= 10
-        if self.health<=0:
+                
+        # Check if health reached zero
+        if self.health <= 0:
             self.is_dead = True
     
-    # Get coordinates of bouding boxes
+    # --- Bounding box methods ---
     def get_right(self):
+        """
+        Get the right edge x-coordinate of player's bounding box.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            float: X-coordinate of right edge
+            
+        Made by: Akshit and Aryan
+        """
         return self.position.x + (self.player_sprite.get_width() / 2)
 
     def get_left(self):
+        """
+        Get the left edge x-coordinate of player's bounding box.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            float: X-coordinate of left edge
+            
+        Made by: Akshit and Aryan
+        """
         return self.position.x - (self.player_sprite.get_width() / 2)
     
     def get_top(self):
+        """
+        Get the top edge y-coordinate of player's bounding box.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            float: Y-coordinate of top edge
+            
+        Made by: Akshit and Aryan
+        """
         return self.position.y - (self.player_sprite.get_height() / 2)
     
     def get_bottom(self):
+        """
+        Get the bottom edge y-coordinate of player's bounding box.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            float: Y-coordinate of bottom edge
+            
+        Made by: Akshit and Aryan
+        """
         return self.position.y + (self.player_sprite.get_height() / 2)
 
-    # Draw the player and it's elytra 
     def draw(self, screen):
+        """
+        Draw the player character and its components on the screen.
+        
+        Renders elytra (wings), player sprite, rocket, and off-screen indicator if needed.
+        
+        Inputs:
+            screen: The pygame surface to draw on
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Draw elytra (wings) on both sides of the player
         screen.blit(self.elytra_sprite_left, (self.blit_position()[0] - (5 * self.player_sprite.get_width() / 8), self.blit_position()[1]))
         screen.blit(self.elytra_sprite_right, (self.blit_position()[0] + (self.player_sprite.get_width() / 2), self.blit_position()[1]))
+        
+        # Draw the main player sprite
         screen.blit(self.player_sprite, self.blit_position())
+        
+        # Draw the player's rocket
         self.rocket.draw(screen)
         
+        # Draw off-screen indicator if player is above the visible area
         if self.position.y < 0:
             arrow_x = self.position.x - (self.arrow_img.get_width() / 2)
             arrow_y = 0
             screen.blit(self.arrow_img, (arrow_x, arrow_y))
             
-            #Display height above "y" under arrow
+            # Display height information beneath arrow
             font = pygame.font.SysFont(None, 20)
             height_text = font.render(str(int(abs(self.position.y))) + " px", True, (0, 0, 0))
             screen.blit(height_text, (arrow_x, arrow_y + self.arrow_img.get_height()))
         
     def blit_position(self):
+        """
+        Calculate the correct position to blit the player sprite.
+        
+        Adjusts position to center the sprite on the player's position.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            tuple: (x, y) coordinates for sprite rendering
+            
+        Made by: Akshit and Aryan
+        """
         return (self.position.x - (self.player_sprite.get_width() / 2), self.position.y - (self.player_sprite.get_height() / 2))
 
     def shoot(self):
+        """
+        Shoot the player's rocket, propelling them in the opposite direction.
+        
+        Uses rocket count as ammo and applies force in the opposite direction of aim.
+        
+        Inputs:
+            None
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Return if no rockets available
         if(self.rocket.rocket_count <= 0):
             return
+            
+        # Calculate direction vector from player to mouse position
         mouse_x, mouse_y = pygame.mouse.get_pos()
         rel_x, rel_y = mouse_x - self.position.x, mouse_y - self.position.y
         vector = Vector2()
         vector.xy = rel_x, rel_y
+        
+        # Normalize the vector
         mag = vector.magnitude()
         vector.xy /= mag
+        
+        # Reset current velocity before applying new force
         self.velocity.y = 0
         self.velocity.x = 0
+        
+        # Apply propulsion force in the direction of the target
         self.add_force(vector, 500)
 
     def add_force(self, vector, magnitude):
+        """
+        Add a directional force to the player's velocity.
+        
+        Inputs:
+            vector (Vector2): Direction vector (should be normalized)
+            magnitude (float): Strength of the force to apply
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         self.velocity.x += vector.x * magnitude
         self.velocity.y += vector.y * magnitude
 
@@ -773,28 +1139,32 @@ class Wall:
         
 class Enemy1:
     """
-    Class for Enemy1, a basic falling enemy unit.
-
+    Class for Enemy1, a basic falling enemy unit that spawns with different appearances. This enemy falls from the top of the screen with random gravity scales.
+    
     Inputs:
         position (Vector2): The initial position from which the enemy spawns.
-
-    Attributes:
-        gravity_scale (int): Determines how fast the enemy falls.
-        xOffset (int): The horizontal size offset for the enemy sprite.
-        yOffset (int): The vertical size offset for the enemy sprite.
-
-    Methods:
-        adjust_speed(factor): Changes the enemy's fall speed for variety.
 
     Made by: Akshit and Aryan
     """
     
     global dt
     def __init__(self, position):
+        """
+        Initialize the Enemy1 instance with a random appearance.
+        
+        Inputs:
+            position (Vector2): The initial position from which the enemy spawns.
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Set up default values
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
-        self.gravity_scale = random.randint(20, 40)
+        self.gravity_scale = random.randint(20, 40)  
 
         self.xOffset = 0
         self.yOffset = 0
@@ -802,7 +1172,7 @@ class Enemy1:
         rand = random.randint(0, 2)
         self.enemy_sprite = None
 
-        # Which enemy to spawn
+        # Select which enemy design to spawn randomly
         if(rand == 0):
             self.enemy_sprite = pygame.image.load('data/images/Potion.png').convert_alpha()
             self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 60))
@@ -814,57 +1184,83 @@ class Enemy1:
             self.xOffset = 60
             self.yOffset = 60
         else:
+            # Rotate the bone sprite because it is on an angle
             self.enemy_sprite = pygame.image.load('data/images/Bone.png').convert_alpha()
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 45)
             self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (90, 90))
             self.xOffset = 40
             self.yOffset = 60
 
-            # Centering the sprite
+            # Center enemy
             self.position.x -= 90
             self.position.y -= 40
         
+        # Make rect
         self.recter = pygame.Rect(self.position, (self.xOffset,self.yOffset))
         self.rectlist = [self.recter]
-        self.timenow = 0 #ignore this
-        
+        self.timenow = 0  
 
     def draw(self, screen):
-        #pygame.draw.rect(screen, (255, 0, 0), self.recter)
+        """
+        Draw the enemy sprite on the screen and apply gravity.
+        
+        Inputs:
+            screen: The game screen to draw on.
+        
+        Outputs:
+            none
+            
+        Made by: Akshit and Aryan
+        """
+        #pygame.draw.rect(screen, (255, 0, 0), self.recter)   # to test hitbox
         screen.blit(self.enemy_sprite, self.position)
         self.gravity()
 
     def gravity(self):
+        """
+        Apply gravity to make the enemy fall down the screen.
+        
+        Inputs:
+            None
+
+        Outputs:
+            None
+        
+        Made by: Akshit and Aryan
+        """
         self.position.y += self.gravity_scale * dt
-        self.gravity_scale += 1
+        self.gravity_scale += 1  # Accelerate fall speed over time
         self.recter = pygame.Rect(self.position, (self.xOffset,self.yOffset))
         self.rectlist = [self.recter]
 
 class Enemy2: 
     """
-    Class for Enemy2, a flying adversary that orients itself toward the player's position.
-
+    Class for Enemy2, a flying enemy that actively tracks and moves toward the player. This enemy moves through the air, rotating itself to face the player's position.
+    
     Inputs:
-        position (pygame.Vector2): The initial position for this enemy.
-
-    Attributes:
-        enemy_sprite (pygame.Surface): Image representing this enemy.
-        rect (pygame.Rect): Collision box for this enemy.
-
-    Methods:
-        draw(screen): Renders the enemy on the given screen.
-        move(targetx, targety): Moves the enemy towards the target.
-        gravity(): Applies gravity if needed.
+        position (Vector2): The initial position for this enemy.
 
     Made by: Akshit and Aryan
     """
     
     global dt
     def __init__(self, position):
+        """
+        Initialize the flying enemy with a parrot sprite.
+        
+        Inputs:
+            position (Vector2): The initial position for this enemy.
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Set default values
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
-        self.gravity_scale = 0
+        self.gravity_scale = 0  # No gravity for flying enemies
         self.enemy_sprite = pygame.image.load('data/images/Parrot.png').convert_alpha()
         self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 180)
         self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (40, 50))
@@ -873,51 +1269,103 @@ class Enemy2:
         self.rect = pygame.Rect(self.position, (40,50))
         self.rectlist = [self.rect]
         self.rotated_surface = self.enemy_sprite
-        self.timenow = 0 #ignore this
+        self.timenow = 0  # Timer for future use
 
     def draw(self, screen):
-        #pygame.draw.rect(screen, (255, 0, 0), self.rect)
+        """
+        Draw the enemy sprite on the screen.
+        
+        Inputs:
+            screen: The game screen to draw on.
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        #pygame.draw.rect(screen, (255, 0, 0), self.rect)  # Uncomment for hitbox visualization
         screen.blit(self.rotated_surface, self.position)
     
     def move(self, targetx, targety):
+        """
+        Calculate movement vector and rotate sprite to face target position.
+        
+        Inputs:
+            targetx (float): X-coordinate of target position (typically player)
+            targety (float): Y-coordinate of target position (typically player)
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         oldCenter = self.position
+        
+        # Calculate angle to target for rotation
         angle = math.atan2(targety - self.position.y, targetx - self.position.x)
         angle = angle * 180/ math.pi
         rot_image = pygame.transform.rotate(self.enemy_sprite, 360 - angle)
         self.rotated_surface = rot_image
         self.position = oldCenter
+        
+        # Calculate movement vector toward target
         angle = math.atan2(targety - self.position.y, targetx - self.position.x)
         self.dx = math.cos(angle) * 2
         self.dy = math.sin(angle) * 2
+        
+        # Move towards it
         self.position.x += self.dx * 0.4
         self.position.y += self.dy * 0.4
+        
+        # Update rects
         self.rect = pygame.Rect(self.position, (40,50))
         self.rectlist = [self.rect]
     
     def gravity(self):
+        """
+        Apply gravity effect if needed (minimal for flying enemies).
+
+        Inputs:
+            None
+
+        Outputs:
+            None
+        
+        Made by: Akshit and Aryan
+        """
         self.position.y += self.gravity_scale * dt
 
 class Enemy3: 
     """
-    A specialized enemy class that represents a laser-based adversary
-    moving along a designated axis. The enemy emits a continuous laser
-    that poses a hazard to the player.
+    A laser-based enemy that moves along a specified axis and emits a dangerous beam. This enemy travels back and forth along either the x or y axis while projecting a continuous laser that serves as a hazard to the player.
     
-    Method: __init__
-        Initializes this laser enemy with a starting position and movement axis.
+    Inputs:
+        position (Vector2): The starting coordinates of the enemy.
+        direction (str): The axis along which the enemy moves ("x-axis" or "y-axis").
 
-        Args:
-            position (Vector2): The starting coordinates of the enemy.
-            direction (str): The axis along which the enemy moves ("x-axis" or "y-axis").
+    Made by: Akshit and Aryan
     """
     
     global dt
     def __init__(self, position, direction):
+        """
+        Initialize the laser enemy with position and movement direction.
+        
+        Inputs:
+            position (Vector2): The starting coordinates of the enemy.
+            direction (str): The axis along which the enemy moves ("x-axis" or "y-axis").
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Set up the basic default values
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
         self.speed = 2
-        self.position1 = Vector2()
+        self.position1 = Vector2()  # Position for the second emitter
         self.laserect_pos = Vector2()
         self.gravity_scale = 0
         self.direction = direction 
@@ -929,7 +1377,9 @@ class Enemy3:
         self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
         self.enemy_sprite1 = pygame.transform.scale(self.enemy_sprite, self.enemy_sprite_size)
 
+        # Set up different configurations based on movement axis
         if self.direction == "y-axis":
+            # Horizontal laser which will move vertically
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 90)
             self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite1, 270)
             self.position1.y = position.y
@@ -940,6 +1390,7 @@ class Enemy3:
                 self.position1.x = position.x + screen_width - 1*self.enemy_sprite_size[0]//4
             self.rect2 = pygame.Rect(self.laserect_pos,(screen_width - 2*self.enemy_sprite_size[0], self.enemy_sprite_size[1]))
         elif self.direction == "x-axis":
+            # Vertical laser which will move horizontally
             self.enemy_sprite = pygame.transform.rotate(self.enemy_sprite, 0)
             self.enemy_sprite1 = pygame.transform.rotate(self.enemy_sprite1, 180)
             self.position1.x = position.x
@@ -950,17 +1401,30 @@ class Enemy3:
                 self.position1.y = position.y + screen_height - 1*self.enemy_sprite_size[1]//2
             self.rect2 = pygame.Rect(self.laserect_pos, (self.enemy_sprite_size[0], screen_height - 20*self.enemy_sprite_size[1]))
 
+        # Make the rects
         self.rect = pygame.Rect(self.position, self.enemy_sprite_size)
         self.rect1 = pygame.Rect(self.position1, self.enemy_sprite_size)
         self.rectlist = [self.rect,self.rect1,self.rect2]
-        self.laserect.fill((0, 153, 153))
+        self.laserect.fill((0, 153, 153))  # Teal
         self.count = 0
         self.traveled_distance = 0
         self.first_spawn = True
         self.timenow = pygame.time.get_ticks()
 
     def draw(self, screen):
+        """
+        Draw the laser emitters and the laser beam on the screen.
+        
+        Inputs:
+            screen: The game screen to draw on.
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         if self.first_spawn:
+            # Play sound effect on first appearance
             screen.blit(self.laserect, self.laserect_pos)
             screen.blit(self.enemy_sprite, self.position)
             screen.blit(self.enemy_sprite1, self.position1)
@@ -969,126 +1433,238 @@ class Enemy3:
             sound.play()
             self.first_spawn = False
         else:
+            # Regular drawing during gameplay
             screen.blit(self.laserect, self.laserect_pos)
             screen.blit(self.enemy_sprite, self.position)
             screen.blit(self.enemy_sprite1, self.position1)
     
-    def move(self): # Move the enemy based on it's direction and the laser movement. 
+    def move(self):
+        """
+        Move the lasers and update the laser position accordingly.
+        
+        Inputs:
+            None
+
+        Outputs:
+            None
+        
+        Made by: Akshit and Aryan
+        """
         if self.direction == "y-axis":
+            # Wrap aroudn the screen
             if self.position.y <= 100:
-                self.count = 0
+                self.count = 0  # Move downward
             elif self.position.y >= screen_height - 100:
-                self.count = 1
+                self.count = 1  # Move upward
+                
+            # Move based on direction
             if self.count == 0:
                 self.position.y += self.speed
                 self.position1.y += self.speed
             elif self.count == 1:
                 self.position.y -= self.speed
                 self.position1.y -= self.speed
+                
+            # Update laser position 
             self.traveled_distance += self.speed
             self.laserect_pos.x = self.position.x + self.enemy_sprite_size[0]
             self.laserect_pos.y = self.position.y + 1*self.enemy_sprite_size[1]//4
             self.rect2.x = self.laserect_pos.x
             self.rect2.y = self.laserect_pos.y
+            
         elif self.direction == "x-axis":
+            # Wrap aroudn the screen
             if self.position.x <= 100:
-                self.count = 0
+                self.count = 0  # Move right
             elif self.position.x >= screen_width - 100:
-                self.count = 1
+                self.count = 1  # Move left
+                
+            # Move based on direction
             if self.count == 0:
                 self.position.x += self.speed
                 self.position1.x += self.speed
             elif self.count == 1:
                 self.position.x -= self.speed
                 self.position1.x -= self.speed
+                
+            # Update laser position 
             self.traveled_distance += self.speed
             self.laserect_pos.x = self.position.x + 1*self.enemy_sprite_size[0]//4
             self.laserect_pos.y = self.position.y + self.enemy_sprite_size[1]
             self.rect2.x = self.laserect_pos.x
             self.rect2.y = self.laserect_pos.y
 
+        # Update rects
         self.rect.x = self.position.x
         self.rect.y = self.position.y
         self.rect1.x = self.position1.x
         self.rect1.y = self.position1.y
     
     def gravity(self):
-        self.position.y += 0
+        """
+        Apply gravity effect (not used for laser enemies).
+
+        Inputs:
+            None
+        
+        Outputs:
+            None
+        
+        Made by: Akshit and Aryan
+        """
+        self.position.y += 0  # No gravity effect
 
 class Enemy4:
+    """
+    A bomb-dropping enemy that moves horizontally and periodically drops explosive projectiles.
+    
+    This enemy travels back and forth along the top of the screen, dropping bombs
+    that explode when they reach the bottom of the screen.
+    
+    Made by: Akshit and Aryan
+    """
+    
     global dt
     def __init__(self, position):
+        """
+        Initialize the bomb-dropping enemy with creeper sprite.
+        
+        Inputs:
+            position (Vector2): The initial position for this enemy.
+        
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
+        # Set the default values for the enemy
         self.position = Vector2()
         self.position.x = position.x
         self.position.y = position.y
-        self.gravity_scale = 0
+        self.gravity_scale = 0  # No gravity for this enemy type
         self.enemy_sprite = pygame.image.load('data/images/Creeper.png').convert_alpha()
         self.enemy_sprite = pygame.transform.scale(self.enemy_sprite, (50, 70))
         self.bomb_img = pygame.transform.scale(pygame.image.load('data/images/Egg.png').convert_alpha(), (50, 50))
         self.rect = pygame.Rect(self.position,(50,70))
-        self.speed = random.randrange(2, 5)
-        self.interval = random.randrange(1,7)
+        self.speed = random.randrange(2, 5)  
+        self.interval = random.randrange(1,7)  # Random bomb dropping interval
         self.rectlist = [self.rect]
         self.xOffset = 50
         self.yOffset = 70
-        self.bombs = []
-        self.explosions = []
+        self.bombs = []  
+        self.explosions = []  
         self.count = 0
         self.timenow = pygame.time.get_ticks()
 
     def draw(self, screen):
+        """
+        Draw the enemy, its bombs, and any active explosions on the screen.
+        
+        Inputs:
+            screen: The game screen to draw on.
+
+        Outputs:
+            None
+            
+        Made by: Akshit and Aryan
+        """
         self.move()
         screen.blit(self.enemy_sprite, self.position)
 
+        # Update  explosions
         explosions_copy = self.explosions.copy()
         for i in range(len(explosions_copy)):
             if(explosions_copy[i].width <= 1):
+                # Remove expired explosions
                 self.rectlist.remove(self.rectlist[i])
                 self.explosions.remove(explosions_copy[i])
                 break
             explosions_copy[i].scale_down()
             explosions_copy[i].width -= 10
             explosions_copy[i].draw(screen)
-        
+
         for bomb in self.bombs:
-            screen.blit(self.bomb_img, (bomb.x-15,bomb.y))
+            screen.blit(self.bomb_img, (bomb.x-15,bomb.y))  # Draw bomb
     
     def move(self):
+        """
+        Move the enemy horizontally and manage bomb dropping.
+        
+        Inputs:
+            None
+
+        Outputs:
+            None
+        
+        Made by: Akshit and Aryan
+        """
+        # If the enemy is at the left edge, move right; if at the right edge, move left
         if self.position.x <= 0:
-            self.count = 0
+            self.count = 0  # Move right
         elif self.position.x >= screen_width - 30:
-            self.count = 1
+            self.count = 1  # Move left
+            
+        # move
         if self.count == 0:
             self.position.x += self.speed
         elif self.count == 1:
             self.position.x -= self.speed
+            
+        # update rect
         self.rect.x = self.position.x
         self.rect.y = self.position.y
         self.rectlist = [self.rect]
+        
         self.drop_bombs()
     
     def drop_bombs(self):
+        """
+        Handle the periodic dropping of bombs and their movement. Creates new bombs at intervals and moves existing bombs downward.
+        
+        Inputs:
+            None
+
+        Outputs:
+            None
+
+        Made by: Akshit and Aryan
+        """
+        # Create new bomb at set intervals
         if abs(int((pygame.time.get_ticks() - self.timenow)/1000)) >= self.interval:
             bomb = pygame.Rect(self.rect.centerx, self.rect.bottom, 20, 20)
             self.bombs.append(bomb)
             self.timenow = pygame.time.get_ticks()
+            
+        # Move all active bombs downward
         for bomb in self.bombs:
             bomb.y += 5
         
+        # Check for bombs reaching the bottom
         self.reach_end()
     
     def reach_end(self):
+        """
+        Check for bombs reaching the bottom of the screen and create explosions. Removes bombs that reach the bottom and creates explosion effects.
+        
+        Inputs:
+            None
+
+        Outputs:
+            None
+
+        Made by: Akshit and Aryan
+        """
         bombs_copy = self.bombs.copy()
         for bomb in bombs_copy:
             if bomb.y >= screen_height:
-                # Create an explosion at the bomb's location
+                # Create an explosion effect where the bomb landed
                 exp_pos = Vector2()
                 exp_pos.x = bomb.x 
                 exp_pos.y = bomb.y - 20
-                explosion = Explosion(exp_pos, 100)
+                explosion = Explosion(exp_pos, 100)  # Create explosion object
                 self.explosions.append(explosion)
                 self.rectlist.append(pygame.Rect(exp_pos.x, exp_pos.y, 100, 100))
-                self.bombs.remove(bomb)
+                self.bombs.remove(bomb)  # Remove the exploded bomb
 
 class LevelBuilder:
     def __init__(self):
@@ -1811,10 +2387,12 @@ class Game:
             # If player has survived for 60 seconds, move to next level
             if abs(int((pygame.time.get_ticks() - timenow)/1000)) >= 60:
                 self.player.rocket.rocket_count += 5
-                self.last_level = 5
-                self.go_to_last_level()
-
-
+                #self.last_level = 5
+                #self.go_to_last_level()
+                self.last_level = 1
+                is_menu = True
+                Menu(screen, 5)
+                
     def handle_events(self):
         """
         Handles all incoming Pygame events, including quitting and shooting.
@@ -1905,7 +2483,11 @@ class Menu():
         self.screen = screen
         #self.bg_img = pygame.image.load('data/images/end_bg.jpg').convert_alpha()
         #self.bg_img = pygame.transform.scale(self.bg_img, (screen_width, screen_height))
-        self.last_level = last_level
+        if last_level == 5:
+            self.last_level = 1
+            self.game_done()
+        else:
+            self.last_level = last_level
         self.update()
 
     def update(self):
@@ -2048,11 +2630,67 @@ class Menu():
                     break
 
             pygame.display.flip()   # update the screen
+    
+    def game_done(self):
+        """
+        Continuously updates and displays the game done screen. User can click to start the game.
+
+        Inputs:
+            None
+        
+        Outputs:
+            None 
+
+        Made by: Akshit and Aryan
+        """
+        global is_menu
+        pygame.font.init()
+    
+        # Play a sound when the menu is opened
+        sound = mixer.Sound("data/audio/Celebration.mp3")
+        sound.set_volume(0.05)
+        sound.play()
+
+        while is_menu:
+            self.clear_screen()
+
+            # Logo and title
+            logo = pygame.image.load('data/images/Burger Cat.png').convert_alpha()
+            logo = pygame.transform.scale(logo, (120, 140))
+            screen.blit(logo, (screen_width/2 - 100, screen_height/2 - 250))
+
+            # Main title text
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 70)
+            text = self.font.render("Burger Cat", False, (100, 100, 100))
+            text_width, text_height = self.font.size("Burger Cat")
+            screen.blit(text, (screen_width/2 - text_width/2, screen_height/2 - 120))
+
+            # Credits
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 20)
+            text = self.font.render("By: Akshit E. & Aryan G.", False, (0, 0, 139))
+            text_width, text_height = self.font.size("By: Akshit E. & Aryan G.")
+            screen.blit(text, (screen_width/2 - text_width/2, screen_height/2 + 80))
+
+            # Click To Play text with a hover effect
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 50)
+            text = self.font.render("Great Job! Play Again?", False, (200, 200, 200))
+            text_width, text_height = self.font.size("Great Job! Play Again?")
+            screen.blit(text, (screen_width/2 - text_width/2, 400 + (math.sin(time.time() * 10) * 5)))
+
+            # Display high score from file
+            self.font = pygame.font.Font("data/fonts/Montserrat-ExtraBold.ttf", 30)
+            highscore_value = open("data/scores/highscore.csv", "r").readline()
+            highscore = self.font.render("Highscore: " + str(highscore_value), False, (180, 180, 180))
+            text_width, text_height = self.font.size("Highscore: " + str(highscore_value))
+            screen.blit(highscore, (screen_width/2 - text_width/2, 460 + (math.sin(time.time() * 10) * 5)))
+
+            pygame.display.flip()   # update the screen
+            self.handle_events()
 
 # Play background music 
 mixer.init()
 mixer.music.load("data/audio/Music.mp3")
-mixer.music.set_volume(0.06)
+mixer.music.set_volume(0.1)
 mixer.music.play(-1)
 
 # Game loop start conditions
